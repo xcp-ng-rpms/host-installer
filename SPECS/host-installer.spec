@@ -1,6 +1,6 @@
 Summary: XenServer Installer
 Name: host-installer
-Version: 10.2.3
+Version: 10.2.9
 Release: 1
 License: GPL
 Group: Applications/System
@@ -106,6 +106,7 @@ mkdir -p \
     %{buildroot}/etc/modprobe.d \
     %{buildroot}/etc/depmod.d \
     %{buildroot}/etc/dracut.conf.d \
+    %{buildroot}/etc/systemd/system/systemd-udevd.d \
     %{buildroot}/etc/udev/rules.d \
     %{buildroot}/usr/lib/udev
 
@@ -122,7 +123,9 @@ cp startup/61-xenrt.rules %{buildroot}/etc/udev/rules.d/
 
 cp startup/{id_serial.sh,scsi_id.old,cciss_id} %{buildroot}/usr/lib/udev/
 
-cp startup/{preinit,S05ramdisk} %{buildroot}/%{installer_dir}/
+cp startup/{preinit,S05ramdisk,S06mount} %{buildroot}/%{installer_dir}/
+
+cp startup/systemd-udevd_depmod.conf %{buildroot}/etc/systemd/system/systemd-udevd.d/installer.conf
 
 # Generate a multipath configuration from sm's copy, removing
 # the blacklist and blacklist_exception sections.
@@ -206,6 +209,7 @@ rm -rf %{buildroot}
 /etc/init.d/*
 %{installer_dir}/preinit
 %attr(755,root,root) %{installer_dir}/S05ramdisk
+%attr(755,root,root) %{installer_dir}/S06mount
 
 %defattr(664,root,root,775)
 /etc/modprobe.d/*
@@ -215,6 +219,8 @@ rm -rf %{buildroot}
 %attr(775,root,root) /usr/lib/udev/id_serial.sh
 %attr(775,root,root) /usr/lib/udev/scsi_id.old
 %attr(775,root,root) /usr/lib/udev/cciss_id
+
+/etc/systemd/system/*/installer.conf
 
 %doc
 
@@ -256,6 +262,28 @@ done
 rm -f /tmp/firmware-used.$$
 
 %changelog
+* Fri Jul 27 2018 Ross Lagerwall <ross.lagerwall@citrix.com> - 10.2.9-1
+- CA-294085: log management config alternatives
+
+* Wed Jul 18 2018 Simon Rowe <simon.rowe@citrix.com> - 10.2.8-1
+- CP-28832: Host installer should tolerate indexes on PCI bus locations
+
+* Tue Jul 17 2018 Simon Rowe <simon.rowe@citrix.com> - 10.2.7-1
+- CP-28858: add extension to systemd-udevd.service
+
+* Mon Jun 25 2018 Simon Rowe <simon.rowe@citrix.com> - 10.2.6-1
+- CA-290859 - Use `1-$MAX` syntax for dom0's vcpus
+- CA-291084: fix make-ramdisk option for update packaging format
+- CA-291084: restore S06mount
+- CA-291084: prevent multiple runs of subordinate scripts
+- Fixup whitespace
+
+* Wed May 30 2018 Simon Rowe <simon.rowe@citrix.com> - 10.2.5-1
+- CA-289215: drop new format build from visual_version
+
+* Tue May 15 2018 Simon Rowe <simon.rowe@citrix.com> - 10.2.4-1
+- CA-289278: Preserve xapi-clusterd db config after reboot
+
 * Mon Apr 23 2018 Simon Rowe <simon.rowe@citrix.com> - 10.2.3-1
 - CA-288312: prefer hostname from /etc/hostname
 - CA-288312: do not write hostname to /etc/sysconfig/network
