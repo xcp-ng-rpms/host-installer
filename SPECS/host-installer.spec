@@ -1,7 +1,7 @@
 Summary: XenServer Installer
 Name: host-installer
 Version: 10.2.9
-Release: 1
+Release: 1%{dist}
 License: GPL
 Group: Applications/System
 Source0: https://code.citrite.net/rest/archive/latest/projects/XS/repos/%{name}/archive?at=%{version}&format=tar.gz&prefix=%{name}-%{version}#/%{name}-%{version}.tar.gz
