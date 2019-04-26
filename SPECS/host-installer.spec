@@ -1,14 +1,19 @@
 Summary: XenServer Installer
 Name: host-installer
-Version: 10.2.9
+Version: 10.5.4
 Release: 1
 License: GPL
 Group: Applications/System
-Source0: https://code.citrite.net/rest/archive/latest/projects/XS/repos/%{name}/archive?at=%{version}&format=tar.gz&prefix=%{name}-%{version}#/%{name}-%{version}.tar.gz
+
+Source0: https://code.citrite.net/rest/archive/latest/projects/XS/repos/host-installer/archive?at=10.5.4&format=tar.gz&prefix=host-installer-10.5.4#/host-installer-10.5.4.tar.gz
+
+
+Provides: gitsha(https://code.citrite.net/rest/archive/latest/projects/XS/repos/host-installer/archive?at=10.5.4&format=tar.gz&prefix=host-installer-10.5.4#/host-installer-10.5.4.tar.gz) = a8b30210a1a24048640af47804c24c367dbce139
+
 # This is where we get 'multipath.conf' from
 BuildRequires: sm xenserver-multipath xenserver-lvm2
 
-Requires: xenserver-multipath xenserver-lvm2 xenserver-systemd-networkd iscsi-initiator-utils
+Requires: xenserver-multipath xenserver-lvm2 iscsi-initiator-utils
 
 # partitioning tools
 Requires: gdisk kpartx e2fsprogs dosfstools
@@ -39,6 +44,7 @@ Requires(post): initscripts
 XenServer Installer
 
 %package startup
+Provides: gitsha(https://code.citrite.net/rest/archive/latest/projects/XS/repos/host-installer/archive?at=10.5.4&format=tar.gz&prefix=host-installer-10.5.4#/host-installer-10.5.4.tar.gz) = a8b30210a1a24048640af47804c24c367dbce139
 Summary: XenServer Installer
 Group: Applications/System
 Requires: host-installer
@@ -48,6 +54,7 @@ Requires(post): initscripts
 XenServer installer startup files
 
 %package bootloader
+Provides: gitsha(https://code.citrite.net/rest/archive/latest/projects/XS/repos/host-installer/archive?at=10.5.4&format=tar.gz&prefix=host-installer-10.5.4#/host-installer-10.5.4.tar.gz) = a8b30210a1a24048640af47804c24c367dbce139
 Summary: XenServer Installer
 Group: Applications/System
 Requires: host-installer
@@ -104,6 +111,7 @@ cp -R \
 mkdir -p \
     %{buildroot}/etc/init.d \
     %{buildroot}/etc/modprobe.d \
+    %{buildroot}/etc/modules-load.d \
     %{buildroot}/etc/depmod.d \
     %{buildroot}/etc/dracut.conf.d \
     %{buildroot}/etc/systemd/system/systemd-udevd.d \
@@ -116,6 +124,8 @@ cp startup/functions %{buildroot}/etc/init.d/installer-functions
 cp startup/{early-blacklist.conf,bnx2x.conf} %{buildroot}/etc/modprobe.d/
 cp startup/blacklist %{buildroot}/etc/modprobe.d/installer-blacklist.conf
 cp startup/modprobe.mlx4 %{buildroot}/etc/modprobe.d/mlx4.conf
+
+cp startup/iscsi-modules %{buildroot}%{_sysconfdir}/modules-load.d/iscsi.conf
 
 cp startup/depmod.conf %{buildroot}/etc/depmod.d/
 
@@ -213,6 +223,7 @@ rm -rf %{buildroot}
 
 %defattr(664,root,root,775)
 /etc/modprobe.d/*
+/etc/modules-load.d/iscsi.conf
 /etc/depmod.d/depmod.conf
 
 /etc/udev/rules.d/61-xenrt.rules
@@ -233,6 +244,12 @@ rm -rf %{buildroot}
 %post
 # these are started by the installer
 /usr/bin/systemctl disable multipathd
+/usr/bin/systemctl mask iscsi-shutdown.service
+/usr/bin/systemctl mask iscsiuio.service
+/usr/bin/systemctl mask iscsid.service
+/usr/bin/systemctl mask iscsid.socket
+/usr/bin/systemctl mask iscsiuio.socket
+/usr/bin/systemctl mask iscsi.service
 
 # avoid to lock disks
 /usr/bin/systemctl disable lvm2-lvmetad
@@ -262,6 +279,60 @@ done
 rm -f /tmp/firmware-used.$$
 
 %changelog
+* Thu Mar 21 2019 Ross Lagerwall <ross.lagerwall@citrix.com> - 10.5.4-1
+- CA-313248 Match old branding EFI boot entries
+
+* Thu Mar 07 2019 Ross Lagerwall <ross.lagerwall@citrix.com> - 10.5.3-1
+- CA-311773: Keep order of updates specified in the answerfile
+- CA-311543: Add serial support to ISOLINUX
+
+* Wed Feb 27 2019 Ross Lagerwall <ross.lagerwall@citrix.com> - 10.5.2-1
+- CA-311306: Bump crash kernel memory to 256M
+
+* Fri Feb 22 2019 Ross Lagerwall <ross.lagerwall@citrix.com> - 10.5.1-2
+- CA-301159: Drop dependency on xenserver-systemd-networkd
+
+* Thu Feb 14 2019 Ross Lagerwall <ross.lagerwall@citrix.com> - 10.5.1-1
+- CA-310736: iscsi: Don't use gateway if target is on the same subnet
+
+* Wed Feb 06 2019 jenniferhe <jennifer.herbert@citrix.com> - 10.5.0-1
+- CA-306058: Don't try to restart iscsid
+- CA-306058: Fix setting up routing for iSCSI NICs
+- CP-30205: Remove legacy toolstack db references
+- CP-29627: Increase dom0 memory for the installer
+- CP-30557: Update installer to use new default_memory_for_version() function.
+- CA-309041: Apply updated dom0 memory size during upgrade
+
+* Tue Jan 15 2019 rossla <ross.lagerwall@citrix.com> - 10.4.1-1
+- CP-30205: Remove legacy 6.x upgrade/restore code
+- CP-30232: Remove dead code in product._readSettings()
+
+* Thu Dec 06 2018 Ross Lagerwall <ross.lagerwall@citrix.com> - 10.4.0-1
+- CA-299191: write Dom0 uuid into /etc/sysconfig/xencommons
+- CA-304547: Rewrite iSCSI code
+- CA-304341: Prevent upgrades from versions of XS prior to 7
+- CA-304341: Prevent restores to versions of XS prior to 7
+- CP-30152: Use up to 16 vCPUs for installation
+- CP-30232: Add an option to use the legacy partition layout
+
+* Fri Nov 23 2018 Simon Rowe <simon.rowe@citrix.com> - 10.3.3-1
+- CA-296524: retain any domain part of the hostname
+- CA-294300: Removed XenCenter.iso entry from fstab.
+
+* Fri Oct 12 2018 Simon Rowe <simon.rowe@citrix.com> - 10.3.2-1
+- CP-29241: hide CC UEFI menu entry for master
+- CP-29685: Switch network stack to Linux Bridge when in CC mode
+
+* Fri Sep 28 2018 Ross Lagerwall <ross.lagerwall@citrix.com> - 10.3.1-1
+- CP-29085: transform to cc-preparations
+- CP-29091: parse service tag in answer file
+- CA-298702: COMPANY_PRODUCT_BRAND missing in /etc/xensource-inventory
+
+* Thu Aug 30 2018 Simon Rowe <simon.rowe@citrix.com> - 10.3.0-1
+- CA-293743: wipe log system before mkfs
+- CA-290899: use file system tree rooted directory for rpm query
+- CA-295381: all packages should be upgraded
+
 * Fri Jul 27 2018 Ross Lagerwall <ross.lagerwall@citrix.com> - 10.2.9-1
 - CA-294085: log management config alternatives
 
