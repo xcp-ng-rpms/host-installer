@@ -1,14 +1,14 @@
 Summary: XenServer Installer
 Name: host-installer
-Version: 10.5.4
+Version: 10.6.10
 Release: 1%{?dist}
 License: GPL
 Group: Applications/System
 
-Source0: https://code.citrite.net/rest/archive/latest/projects/XS/repos/host-installer/archive?at=10.5.4&format=tar.gz&prefix=host-installer-10.5.4#/host-installer-10.5.4.tar.gz
+Source0: https://code.citrite.net/rest/archive/latest/projects/XS/repos/host-installer/archive?at=10.6.10&format=tar.gz&prefix=host-installer-10.6.10#/host-installer-10.6.10.tar.gz
 
 
-Provides: gitsha(https://code.citrite.net/rest/archive/latest/projects/XS/repos/host-installer/archive?at=10.5.4&format=tar.gz&prefix=host-installer-10.5.4#/host-installer-10.5.4.tar.gz) = a8b30210a1a24048640af47804c24c367dbce139
+Provides: gitsha(https://code.citrite.net/rest/archive/latest/projects/XS/repos/host-installer/archive?at=10.6.10&format=tar.gz&prefix=host-installer-10.6.10#/host-installer-10.6.10.tar.gz) = 441736fc74656433615165f285f34955826c6f7c
 
 # This is where we get 'multipath.conf' from
 BuildRequires: sm xenserver-multipath xenserver-lvm2
@@ -44,7 +44,7 @@ Requires(post): initscripts
 XenServer Installer
 
 %package startup
-Provides: gitsha(https://code.citrite.net/rest/archive/latest/projects/XS/repos/host-installer/archive?at=10.5.4&format=tar.gz&prefix=host-installer-10.5.4#/host-installer-10.5.4.tar.gz) = a8b30210a1a24048640af47804c24c367dbce139
+Provides: gitsha(https://code.citrite.net/rest/archive/latest/projects/XS/repos/host-installer/archive?at=10.6.10&format=tar.gz&prefix=host-installer-10.6.10#/host-installer-10.6.10.tar.gz) = 441736fc74656433615165f285f34955826c6f7c
 Summary: XenServer Installer
 Group: Applications/System
 Requires: host-installer
@@ -54,7 +54,7 @@ Requires(post): initscripts
 XenServer installer startup files
 
 %package bootloader
-Provides: gitsha(https://code.citrite.net/rest/archive/latest/projects/XS/repos/host-installer/archive?at=10.5.4&format=tar.gz&prefix=host-installer-10.5.4#/host-installer-10.5.4.tar.gz) = a8b30210a1a24048640af47804c24c367dbce139
+Provides: gitsha(https://code.citrite.net/rest/archive/latest/projects/XS/repos/host-installer/archive?at=10.6.10&format=tar.gz&prefix=host-installer-10.6.10#/host-installer-10.6.10.tar.gz) = 441736fc74656433615165f285f34955826c6f7c
 Summary: XenServer Installer
 Group: Applications/System
 Requires: host-installer
@@ -72,7 +72,7 @@ rm -rf %{buildroot}
 
 # Installer files
 mkdir -p %{buildroot}/usr/bin
-cp timeutil support.sh %{buildroot}/usr/bin
+cp support.sh %{buildroot}/usr/bin
 
 mkdir -p %{buildroot}%{installer_dir}
 cp -R \
@@ -82,7 +82,6 @@ cp -R \
         timezones \
         answerfile.py \
         backend.py \
-        bugtool.py \
         constants.py \
         cpiofile.py \
         disktools.py \
@@ -114,9 +113,7 @@ mkdir -p \
     %{buildroot}/etc/modules-load.d \
     %{buildroot}/etc/depmod.d \
     %{buildroot}/etc/dracut.conf.d \
-    %{buildroot}/etc/systemd/system/systemd-udevd.d \
-    %{buildroot}/etc/udev/rules.d \
-    %{buildroot}/usr/lib/udev
+    %{buildroot}/etc/systemd/system/systemd-udevd.d
 
 cp startup/{interface-rename-sideway,early-blacklist} %{buildroot}/etc/init.d/
 cp startup/functions %{buildroot}/etc/init.d/installer-functions
@@ -128,10 +125,6 @@ cp startup/modprobe.mlx4 %{buildroot}/etc/modprobe.d/mlx4.conf
 cp startup/iscsi-modules %{buildroot}%{_sysconfdir}/modules-load.d/iscsi.conf
 
 cp startup/depmod.conf %{buildroot}/etc/depmod.d/
-
-cp startup/61-xenrt.rules %{buildroot}/etc/udev/rules.d/
-
-cp startup/{id_serial.sh,scsi_id.old,cciss_id} %{buildroot}/usr/lib/udev/
 
 cp startup/{preinit,S05ramdisk,S06mount} %{buildroot}/%{installer_dir}/
 
@@ -167,9 +160,7 @@ rm -rf %{buildroot}
 # Executables
 %{installer_dir}/init
 %{installer_dir}/report.py
-%{installer_dir}/bugtool.py
 /usr/bin/support.sh
-/usr/bin/timeutil
 
 %defattr(664,root,root,775)
 # Installer gubbins
@@ -226,11 +217,6 @@ rm -rf %{buildroot}
 /etc/modules-load.d/iscsi.conf
 /etc/depmod.d/depmod.conf
 
-/etc/udev/rules.d/61-xenrt.rules
-%attr(775,root,root) /usr/lib/udev/id_serial.sh
-%attr(775,root,root) /usr/lib/udev/scsi_id.old
-%attr(775,root,root) /usr/lib/udev/cciss_id
-
 /etc/systemd/system/*/installer.conf
 
 %doc
@@ -279,7 +265,62 @@ done
 rm -f /tmp/firmware-used.$$
 
 %changelog
-* Thu Mar 21 2019 Ross Lagerwall <ross.lagerwall@citrix.com> - 10.5.4-1
+* Thu Nov 14 2019 Ross Lagerwall <ross.lagerwall@citrix.com> - 10.6.10-1
+- CA-327217: Log efibootmgr failures when updating
+
+* Thu Oct 31 2019 Ross Lagerwall <ross.lagerwall@citrix.com> - 10.6.9-1
+- CP-32365: Remove bugtool.py
+- CP-32365: Avoid logging ftp username/password in report.py
+- Restore username/passwords in URL dialog
+- Quote credentials correctly when saving reports
+- CA-329747: Fix url-encoding issues with username/passwords
+- CA-329747: Remove splitNetloc
+- CA-329192: Don't reveal if username doesn't have a password
+- CA-329837: Don't log the pool token
+
+* Thu Oct 24 2019 Ross Lagerwall <ross.lagerwall@citrix.com> - 10.6.8-1
+- CA-329192: Don't leak HTTP/FTP credentials
+
+* Thu Aug 22 2019 Ross Lagerwall <ross.lagerwall@citrix.com> - 10.6.7-1
+- CP-30221 / CA-325143: Switch to use chronyd for NTP
+- CP-25099: Remove timeutil
+- CP-25099: Set time before installation is started
+- CA-293794: Prefer NTP servers from DHCP
+- CP-30221: Use chrony.conf during upgrades
+
+* Mon Aug 12 2019 Ross Lagerwall <ross.lagerwall@citrix.com> - 10.6.6-1
+- CA-310853: Add check to TUI call to prevent erroneous backward jumps
+- CA-322208: Ignore errors raised by deactivateAll()
+- CP-32019: Rework FCoE setup code to match post-installation
+
+* Thu Jul 18 2019 Ross Lagerwall <ross.lagerwall@citrix.com> - 10.6.5-1
+- CA-322144: Dump iBFT state for debugging
+- CA-323227: Fix interactive installation with multipath
+- CA-322479: Prevent iSCSI session(s) getting logged out during shutdown
+- CA-317858: Re-enable job control for bash-shell
+- Remove xencons kernel parameter
+- CA-323599: Use full "com" parameter after installation
+
+* Mon Jun 10 2019 Ross Lagerwall <ross.lagerwall@citrix.com> - 10.6.4-1
+- Improve "Installing ..." text
+- CA-319463: Don't restore certain files after upgrade
+
+* Tue May 28 2019 Ross Lagerwall <ross.lagerwall@citrix.com> - 10.6.3-1
+- CA-317754: Drop unneeded legacy disk/by-id symlink handling
+- CA-317755: Fix installation when iBFT has no gateway
+- CA-260176: Use new DNS format for management interface config
+- CA-317642: Move repo length check earlier
+- Code style improvements and modernization
+
+* Wed May 08 2019 Ross Lagerwall <ross.lagerwall@citrix.com> - 10.6.2-1
+- CA-296436: Disable mcelog on unsupported processors
+
+* Fri Apr 12 2019 Ross Lagerwall <ross.lagerwall@citrix.com> - 10.6.1-1
+- CA-311401: Handle the upgrade of disks from aacraid to smartpqi
+
+* Wed Mar 27 2019 Ross Lagerwall <ross.lagerwall@citrix.com> - 10.6.0-1
+- CP-30566: Add support for VirtIO Blk devices
+- CA-312390: Fix agetty parametrs, treat all ttys equally, fixing serial handling.
 - CA-313248 Match old branding EFI boot entries
 
 * Thu Mar 07 2019 Ross Lagerwall <ross.lagerwall@citrix.com> - 10.5.3-1
