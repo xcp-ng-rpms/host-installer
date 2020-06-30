@@ -1,14 +1,14 @@
 Summary: XenServer Installer
 Name: host-installer
-Version: 10.6.10
+Version: 10.7.5
 Release: 1%{?dist}
 License: GPL
 Group: Applications/System
 
-Source0: https://code.citrite.net/rest/archive/latest/projects/XS/repos/host-installer/archive?at=10.6.10&format=tar.gz&prefix=host-installer-10.6.10#/host-installer-10.6.10.tar.gz
+Source0: https://code.citrite.net/rest/archive/latest/projects/XS/repos/host-installer/archive?at=10.7.5&format=tar.gz&prefix=host-installer-10.7.5#/host-installer-10.7.5.tar.gz
 
 
-Provides: gitsha(https://code.citrite.net/rest/archive/latest/projects/XS/repos/host-installer/archive?at=10.6.10&format=tar.gz&prefix=host-installer-10.6.10#/host-installer-10.6.10.tar.gz) = 441736fc74656433615165f285f34955826c6f7c
+Provides: gitsha(https://code.citrite.net/rest/archive/latest/projects/XS/repos/host-installer/archive?at=10.7.5&format=tar.gz&prefix=host-installer-10.7.5#/host-installer-10.7.5.tar.gz) = 2b6b70d61840c6e534fdfbd8638f23b6c7c6ef3c
 
 # This is where we get 'multipath.conf' from
 BuildRequires: sm xenserver-multipath xenserver-lvm2
@@ -44,7 +44,7 @@ Requires(post): initscripts
 XenServer Installer
 
 %package startup
-Provides: gitsha(https://code.citrite.net/rest/archive/latest/projects/XS/repos/host-installer/archive?at=10.6.10&format=tar.gz&prefix=host-installer-10.6.10#/host-installer-10.6.10.tar.gz) = 441736fc74656433615165f285f34955826c6f7c
+Provides: gitsha(https://code.citrite.net/rest/archive/latest/projects/XS/repos/host-installer/archive?at=10.7.5&format=tar.gz&prefix=host-installer-10.7.5#/host-installer-10.7.5.tar.gz) = 2b6b70d61840c6e534fdfbd8638f23b6c7c6ef3c
 Summary: XenServer Installer
 Group: Applications/System
 Requires: host-installer
@@ -54,7 +54,7 @@ Requires(post): initscripts
 XenServer installer startup files
 
 %package bootloader
-Provides: gitsha(https://code.citrite.net/rest/archive/latest/projects/XS/repos/host-installer/archive?at=10.6.10&format=tar.gz&prefix=host-installer-10.6.10#/host-installer-10.6.10.tar.gz) = 441736fc74656433615165f285f34955826c6f7c
+Provides: gitsha(https://code.citrite.net/rest/archive/latest/projects/XS/repos/host-installer/archive?at=10.7.5&format=tar.gz&prefix=host-installer-10.7.5#/host-installer-10.7.5.tar.gz) = 2b6b70d61840c6e534fdfbd8638f23b6c7c6ef3c
 Summary: XenServer Installer
 Group: Applications/System
 Requires: host-installer
@@ -82,6 +82,7 @@ cp -R \
         timezones \
         answerfile.py \
         backend.py \
+        common_criteria_firewall_rules \
         constants.py \
         cpiofile.py \
         disktools.py \
@@ -199,6 +200,7 @@ rm -rf %{buildroot}
 %{installer_dir}/tui/fcoe.py
 
 # Data
+%{installer_dir}/common_criteria_firewall_rules
 %{installer_dir}/keymaps
 %{installer_dir}/timezones
 %config /etc/multipath.conf.disabled
@@ -265,6 +267,31 @@ done
 rm -f /tmp/firmware-used.$$
 
 %changelog
+* Fri May 29 2020 Ross Lagerwall <ross.lagerwall@citrix.com> - 10.7.5-1
+- CA-337001: Prompt the user to re-init the disk if needed
+
+* Thu Mar 26 2020 Ross Lagerwall <ross.lagerwall@citrix.com> - 10.7.4-1
+- CA-336696: Handle errors when copying ownership
+- CA-336693: Pass the correct parameters to setEfiBootEntry()
+- CA-336693: Mount the ESP before restoring files
+- CA-336693: Fix UEFI restore when there is no storage partition
+
+* Wed Feb 05 2020 Ross Lagerwall <ross.lagerwall@citrix.com> - 10.7.3-1
+- CP-31090: Add network-init as a must-run service
+
+* Thu Jan 23 2020 Ross Lagerwall <ross.lagerwall@citrix.com> - 10.7.2-1
+- CA-332901: Fix sshd service enable with cc-preparations
+- CP-31092: Use different pool token generation in CC mode
+
+* Thu Dec 12 2019 Ross Lagerwall <ross.lagerwall@citrix.com> - 10.7.1-1
+- CP-32298: Don't expect firstboot state to exist
+
+* Fri Dec 06 2019 Ross Lagerwall <ross.lagerwall@citrix.com> - 10.7.0-1
+- Unbreak "safe" boot option on x2APIC machines
+- CP-31092: Move CC preparations from firstboot script to the installer
+- Remove outdated logrotate code
+- CP-32298: Reimplement 95-legacy-logrotate in the installer
+
 * Thu Nov 14 2019 Ross Lagerwall <ross.lagerwall@citrix.com> - 10.6.10-1
 - CA-327217: Log efibootmgr failures when updating
 
