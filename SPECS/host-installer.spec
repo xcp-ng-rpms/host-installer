@@ -1,14 +1,14 @@
 Summary: XenServer Installer
 Name: host-installer
-Version: 10.7.5
+Version: 10.7.5.3
 Release: 1
 License: GPL
 Group: Applications/System
 
-Source0: https://code.citrite.net/rest/archive/latest/projects/XS/repos/host-installer/archive?at=10.7.5&format=tar.gz&prefix=host-installer-10.7.5#/host-installer-10.7.5.tar.gz
+Source0: https://code.citrite.net/rest/archive/latest/projects/XS/repos/host-installer/archive?at=10.7.5.3&format=tar.gz&prefix=host-installer-10.7.5.3#/host-installer-10.7.5.3.tar.gz
 
 
-Provides: gitsha(https://code.citrite.net/rest/archive/latest/projects/XS/repos/host-installer/archive?at=10.7.5&format=tar.gz&prefix=host-installer-10.7.5#/host-installer-10.7.5.tar.gz) = 2b6b70d61840c6e534fdfbd8638f23b6c7c6ef3c
+Provides: gitsha(https://code.citrite.net/rest/archive/latest/projects/XS/repos/host-installer/archive?at=10.7.5.3&format=tar.gz&prefix=host-installer-10.7.5.3#/host-installer-10.7.5.3.tar.gz) = 0fc00443f45a9e9298f591000942b7898c36c201
 
 # This is where we get 'multipath.conf' from
 BuildRequires: sm xenserver-multipath xenserver-lvm2
@@ -44,7 +44,7 @@ Requires(post): initscripts
 XenServer Installer
 
 %package startup
-Provides: gitsha(https://code.citrite.net/rest/archive/latest/projects/XS/repos/host-installer/archive?at=10.7.5&format=tar.gz&prefix=host-installer-10.7.5#/host-installer-10.7.5.tar.gz) = 2b6b70d61840c6e534fdfbd8638f23b6c7c6ef3c
+Provides: gitsha(https://code.citrite.net/rest/archive/latest/projects/XS/repos/host-installer/archive?at=10.7.5.3&format=tar.gz&prefix=host-installer-10.7.5.3#/host-installer-10.7.5.3.tar.gz) = 0fc00443f45a9e9298f591000942b7898c36c201
 Summary: XenServer Installer
 Group: Applications/System
 Requires: host-installer
@@ -54,7 +54,7 @@ Requires(post): initscripts
 XenServer installer startup files
 
 %package bootloader
-Provides: gitsha(https://code.citrite.net/rest/archive/latest/projects/XS/repos/host-installer/archive?at=10.7.5&format=tar.gz&prefix=host-installer-10.7.5#/host-installer-10.7.5.tar.gz) = 2b6b70d61840c6e534fdfbd8638f23b6c7c6ef3c
+Provides: gitsha(https://code.citrite.net/rest/archive/latest/projects/XS/repos/host-installer/archive?at=10.7.5.3&format=tar.gz&prefix=host-installer-10.7.5.3#/host-installer-10.7.5.3.tar.gz) = 0fc00443f45a9e9298f591000942b7898c36c201
 Summary: XenServer Installer
 Group: Applications/System
 Requires: host-installer
@@ -267,6 +267,16 @@ done
 rm -f /tmp/firmware-used.$$
 
 %changelog
+* Tue Sep 7 2021 Lin Liu <lin.liu@citrix.com> - 10.7.5.3-1
+- CP-37663: Backport winbind to Yangtze
+
+* Mon Aug 16 2021 Ross Lagerwall <ross.lagerwall@citrix.com> - 10.7.5.2-1
+- CP-37784: Add common-criteria-prep menu entry to GRUB config
+
+* Thu Jul 08 2021 Ross Lagerwall <ross.lagerwall@citrix.com> - 10.7.5.1-1
+- CA-343729: Log exceptions from iSCSI setup
+- CA-349118: Create modprobe files during upgrade
+
 * Fri May 29 2020 Ross Lagerwall <ross.lagerwall@citrix.com> - 10.7.5-1
 - CA-337001: Prompt the user to re-init the disk if needed
 
