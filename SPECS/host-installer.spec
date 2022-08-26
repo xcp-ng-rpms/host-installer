@@ -1,15 +1,12 @@
+%global package_speccommit e2726e108c480a1796f01e3109580856df71189d
+%global package_srccommit v10.10.0
 Summary: XenServer Installer
 Name: host-installer
-Version: 10.7.5.3
-Release: 1
+Version: 10.10.0
+Release: 1%{?xsrel}%{?dist}
 License: GPL
 Group: Applications/System
-
-Source0: https://code.citrite.net/rest/archive/latest/projects/XS/repos/host-installer/archive?at=10.7.5.3&format=tar.gz&prefix=host-installer-10.7.5.3#/host-installer-10.7.5.3.tar.gz
-
-
-Provides: gitsha(https://code.citrite.net/rest/archive/latest/projects/XS/repos/host-installer/archive?at=10.7.5.3&format=tar.gz&prefix=host-installer-10.7.5.3#/host-installer-10.7.5.3.tar.gz) = 0fc00443f45a9e9298f591000942b7898c36c201
-
+Source0: host-installer-10.10.0.tar.gz
 # This is where we get 'multipath.conf' from
 BuildRequires: sm xenserver-multipath xenserver-lvm2
 
@@ -44,7 +41,6 @@ Requires(post): initscripts
 XenServer Installer
 
 %package startup
-Provides: gitsha(https://code.citrite.net/rest/archive/latest/projects/XS/repos/host-installer/archive?at=10.7.5.3&format=tar.gz&prefix=host-installer-10.7.5.3#/host-installer-10.7.5.3.tar.gz) = 0fc00443f45a9e9298f591000942b7898c36c201
 Summary: XenServer Installer
 Group: Applications/System
 Requires: host-installer
@@ -54,7 +50,6 @@ Requires(post): initscripts
 XenServer installer startup files
 
 %package bootloader
-Provides: gitsha(https://code.citrite.net/rest/archive/latest/projects/XS/repos/host-installer/archive?at=10.7.5.3&format=tar.gz&prefix=host-installer-10.7.5.3#/host-installer-10.7.5.3.tar.gz) = 0fc00443f45a9e9298f591000942b7898c36c201
 Summary: XenServer Installer
 Group: Applications/System
 Requires: host-installer
@@ -267,15 +262,48 @@ done
 rm -f /tmp/firmware-used.$$
 
 %changelog
-* Tue Sep 7 2021 Lin Liu <lin.liu@citrix.com> - 10.7.5.3-1
-- CP-37663: Backport winbind to Yangtze
+* Mon Jun 06 2022 Mark Syms <mark.syms@citrix.com> - 10.10.0-1
+- CP-39332: Check gpg signing on repo
 
-* Mon Aug 16 2021 Ross Lagerwall <ross.lagerwall@citrix.com> - 10.7.5.2-1
+* Wed Mar 09 2022 Mark Syms <mark.syms@citrix.com> - 10.9.2-1
+- CP-39330: remove obsolete GPG key injection, now in release
+
+* Wed Mar 02 2022 Mark Syms <mark.syms@citrix.com> - 10.9.1-1
+- CA-364633: ensure the dir for the management file exists
+
+* Wed Jan 05 2022 Alex Brett <alex.brett@citrix.com> - 10.9.0-1
+- CP-38454: Support use of stacked repositories during installation
+- CA-359850: Fix screen skipping on Set Time Manually screen
+
+* Mon Nov 29 2021 Deli Zhang <deli.zhang@citrix.com> - 10.8.1-1
+- CP-37849: Support .treeinfo new format
+
+* Tue Aug 10 2021 Ross Lagerwall <ross.lagerwall@citrix.com> - 10.8.0-1
 - CP-37784: Add common-criteria-prep menu entry to GRUB config
+- CP-35398: Upgrade from PBIS to winbind
 
-* Thu Jul 08 2021 Ross Lagerwall <ross.lagerwall@citrix.com> - 10.7.5.1-1
-- CA-343729: Log exceptions from iSCSI setup
+* Thu Jul 08 2021 Ross Lagerwall <ross.lagerwall@citrix.com> - 10.7.12-1
 - CA-349118: Create modprobe files during upgrade
+
+* Fri Jun 04 2021 Ross Lagerwall <ross.lagerwall@citrix.com> - 10.7.11-1
+- CA-355255: Don't fail to install over another OS
+
+* Tue May 04 2021 Ross Lagerwall <ross.lagerwall@citrix.com> - 10.7.10-1
+- CA-353423: Upgrades should fail sooner when DOS util partition is detected
+
+* Thu Apr 15 2021 Ross Lagerwall <ross.lagerwall@citrix.com> - 10.7.9-1
+- Remove support for legacy partitions
+- CP-35049: Add support for optional build numbers
+
+* Tue Oct 06 2020 Ross Lagerwall <ross.lagerwall@citrix.com> - 10.7.8-1
+- CA-343729: Log exceptions from iSCSI setup
+
+* Mon Sep 21 2020 Ben Anson <ben.anson@citrix.com> - 10.7.7-1
+- Revert "CP-34815: Force a valid hostname at all times"
+
+* Wed Sep 16 2020 Ben Anson <ben.anson@citrix.com> - 10.7.6-1
+- CP-34815: Force a valid hostname at all times
+- CP-34873: remove references to genptoken services
 
 * Fri May 29 2020 Ross Lagerwall <ross.lagerwall@citrix.com> - 10.7.5-1
 - CA-337001: Prompt the user to re-init the disk if needed
