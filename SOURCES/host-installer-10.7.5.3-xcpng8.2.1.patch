@@ -1,0 +1,1096 @@
+diff --git a/RPM-GPG-KEY-xcpng b/RPM-GPG-KEY-xcpng
+new file mode 100644
+index 0000000..2fb6716
+--- /dev/null
++++ b/RPM-GPG-KEY-xcpng
+@@ -0,0 +1,30 @@
++-----BEGIN PGP PUBLIC KEY BLOCK-----
++
++mQENBFu0lAkBCADXtdXbv0TKwrk+We5WRZH2sFMpG7pplKV0y1UA+Zowf3mz8wzD
++WwPhHTWgOO8N3m0lfe87kSxfqRTLhcVIkCPbMaGrI+PKGp4XIU/AUSBK0RBXrLMH
++Rxn5IaXjP8FfnsS66qIRPcHiM73ixq0McNp+T9wPRtN7p2vkJM1JkDySa64jMn2Q
++odEWEShP4O+m7v6YqaI41o5hIXzF1sC6bEIk4ok6/3mLBtnLQ8dBKClnMANsHGXi
++6IyU+bnPq2NKJvI4i58JTGzFpamMFDzCINYuyIrx/jRvzICDTSG32GxuIY997Ip4
++Uw0bnNNBAxPNABG6sU+wOfuseZ2UoinFP8aDABEBAAG0PlhDUC1uZyBLZXkgKFhD
++UC1uZyBPZmZpY2lhbCBTaWduaW5nIEtleSkgPHNlY3VyaXR5QHhjcC1uZy5vcmc+
++iQE4BBMBAgAiBQJbtJQJAhsDBgsJCAcDAgYVCAIJCgsEFgIDAQIeAQIXgAAKCRDN
++dXg6P9OsnpLVB/9N8AkHLwYnYZT+GTcNqCng1rSBBXQgdURLIk3DeDFpdAWmJ+eY
++ngooeSXvVC8Sjbu3JcaJ/QdrIoAAvbBs3A2Yl3z7Pytu7PRdCAbsKcApfqAVqQcv
++yPTyubgBreSjr6FiIQYXY/2jkKb1+k1R/kJRmJUIlGxCQgXTP8S2G1v+f1LRuoHp
++CaTUbrmNak+8iWT9vYrVYM7DxPXEZcZRDRu6WsXvgIiCjZbb1ZodzjKtWizpA9lM
++A0AD9NJp0Gt6xX2lcpFakDLEm+nHqULsRGdVNc42mEnU9qoa6ne98Sx89mJjsa/p
++DjsJoJZx2uY53abIeG886RuhPmTXqfEqUplMuQENBFu0lAkBCAC6Kpa3OGNt2+OM
++yMDVRItCKGPf2peLqucLBAPNhPN5LuDfDbbVATghbTqntZsrrCpAfcKj+3KZhzK8
++zzob5QDC7MbN/k04uZ6+2+2JAK3cn65s4tM/Bw5dVppytDMniJKVTU+gZuRXcUOx
++Y52fKd8ujCB5k0OZGX+7iqZRqHjxgYN0UNx47HI5yUHsO7V3gBq7Wr3s4VPpnVlZ
++GG6jzmy+3vPEFZsiyEbJvGN/7YVvawDPIki2Egkhiyh9L9hkB45ot2XkpBzaLuBZ
++u06KeUdX/DT386htyfbbfEg/2H/146AAdLTY+Ryek8nUJEoR0maQmJNKCwGKDhoW
++Kbd5HuXhABEBAAGJAR8EGAECAAkFAlu0lAkCGwwACgkQzXV4Oj/TrJ7DXAf/Rajk
++Mhz13T8NXw9aM4tr+dqkqsv6+u9UDIy7fbkEYiZP7OrBGuHEa2SUJFN6ITD5XPot
++qlLI4rCPjziTi9aPem79oUB5SEoESiIH7LlPG1HrR1sZNcRZWULonv2NWZa90EmF
++yvX0HJhygFdVapUdsezKV+OdbkhYISkptsByUmTE/zaGCKZyqSlTVEv/DlRcm1B9
++VFkO1y1q4K0xS7HhbBI/zbYuPRHJ/OXRpS3h6eOXP94rYYbRl1njFB4v2yKCCucG
++059tGLyZbmeEM7EML87btSt8S3Dh+j7/PqbImnKKVAH7CWAljdGQQpyAvrEI93Hs
++pimz3jrPysfDWuaBiA==
++=/d3z
++-----END PGP PUBLIC KEY BLOCK-----
+diff --git a/answerfile.py b/answerfile.py
+index 064c674..cb4a905 100644
+--- a/answerfile.py
++++ b/answerfile.py
+@@ -101,6 +101,7 @@ class Answerfile:
+             else:
+                 raise AnswerfileException("Unknown mode, %s" % install_type)
+ 
++            results['netinstall-gpg-check'] = getBoolAttribute(self.top_node, ['netinstall-gpg-check'], default = True)
+             results.update(self.parseCommon())
+         elif self.operation == 'restore':
+             results = self.parseRestore()
+@@ -155,6 +156,7 @@ class Answerfile:
+                 except:
+                     pass
+ 
++        results.update(self.parseRaid())
+         results.update(self.parseDisks())
+         results.update(self.parseInterface())
+         results.update(self.parseRootPassword())
+@@ -315,6 +317,16 @@ class Answerfile:
+             results['extra-repos'].append((rtype, address))
+         return results
+ 
++    def parseRaid(self):
++        results = {}
++        for raid_node in getElementsByTagName(self.top_node, ['raid']):
++            disk_device = normalize_disk(getStrAttribute(raid_node, ['device'], mandatory=True))
++            disks = [normalize_disk(getText(node)) for node in getElementsByTagName(raid_node, ['disk'])]
++            if 'raid' not in results:
++                results['raid'] = {}
++            results['raid'][disk_device] = disks
++        return results
++
+     def parseDisks(self):
+         results = {}
+ 
+diff --git a/backend.py b/backend.py
+index 4808f67..e676a3e 100644
+--- a/backend.py
++++ b/backend.py
+@@ -42,6 +42,8 @@ from xcp.version import Version
+ import version
+ from version import *
+ from constants import *
++from diskutil import getRemovableDeviceList
++from uicontroller import REPEAT_STEP
+ 
+ MY_PRODUCT_BRAND = PRODUCT_BRAND or PLATFORM_NAME
+ 
+@@ -113,6 +115,7 @@ def getPrepSequence(ans, interactive):
+         Task(util.getUUID, As(ans), ['installation-uuid']),
+         Task(util.getUUID, As(ans), ['control-domain-uuid']),
+         Task(util.randomLabelStr, As(ans), ['disk-label-suffix']),
++        Task(diskutil.create_raid, A(ans, 'raid'), []),
+         Task(inspectTargetDisk, A(ans, 'primary-disk', 'installation-to-overwrite', 'initial-partitions', 'preserve-first-partition', 'sr-on-primary', 'create-new-partitions'), ['target-boot-mode', 'boot-partnum', 'primary-partnum', 'backup-partnum', 'logs-partnum', 'swap-partnum', 'storage-partnum']),
+         Task(selectPartitionTableType, A(ans, 'primary-disk', 'install-type', 'primary-partnum', 'create-new-partitions'), ['partition-table-type']),
+         ]
+@@ -161,7 +164,7 @@ def getPrepSequence(ans, interactive):
+ def getRepoSequence(ans, repos):
+     seq = []
+     for repo in repos:
+-        seq.append(Task(repo.installPackages, A(ans, 'mounts'), [],
++        seq.append(Task(repo.installPackages, A(ans, 'mounts', 'kernel-alt'), [],
+                      progress_scale=100,
+                      pass_progress_callback=True,
+                      progress_text="Installing %s..." % repo.name()))
+@@ -171,6 +174,7 @@ def getRepoSequence(ans, repos):
+ 
+ def getFinalisationSequence(ans):
+     seq = [
++        Task(importYumAndRpmGpgKeys, A(ans, 'mounts'), []),
+         Task(writeResolvConf, A(ans, 'mounts', 'manual-hostname', 'manual-nameservers'), []),
+         Task(writeMachineID, A(ans, 'mounts'), []),
+         Task(writeKeyboardConfiguration, A(ans, 'mounts', 'keymap'), []),
+@@ -192,6 +196,7 @@ def getFinalisationSequence(ans):
+                                   'boot-partnum', 'primary-partnum', 'target-boot-mode', 'branding',
+                                   'disk-label-suffix', 'bootloader-location', 'write-boot-entry', 'install-type',
+                                   'serial-console', 'boot-serial', 'host-config', 'fcoe-interfaces'), []),
++        Task(postInstallAltKernel, A(ans, 'mounts', 'kernel-alt'), []),
+         Task(touchSshAuthorizedKeys, A(ans, 'mounts'), []),
+         Task(setRootPassword, A(ans, 'mounts', 'root-password'), [], args_sensitive=True),
+         Task(setTimeZone, A(ans, 'mounts', 'timezone'), []),
+@@ -281,12 +286,12 @@ def executeSequence(sequence, seq_name, answers, ui, cleanup):
+         doCleanup(answers['cleanup'])
+         raise
+     else:
+-        if ui and pd:
+-            ui.progress.clearModelessDialog()
+-
+         if cleanup:
+             doCleanup(answers['cleanup'])
+             del answers['cleanup']
++    finally:
++        if ui and pd:
++            ui.progress.clearModelessDialog()
+ 
+ def performInstallation(answers, ui_package, interactive):
+     logger.log("INPUT ANSWERS DICTIONARY:")
+@@ -319,6 +324,10 @@ def performInstallation(answers, ui_package, interactive):
+                                                          default_host_config['dom0-mem'])
+                 default_host_config['dom0-vcpus'] = xcp.dom0.default_vcpus(hardware.getHostTotalCPUs(),
+                                                                            answers['host-config']['dom0-mem'])
++
++            # Set scheduler granularity if necessary.
++            if 'sched-gran' in answers['host-config']:
++                default_host_config['sched-gran'] = answers['host-config']['sched-gran']
+         except Exception as e:
+             logger.logException(e)
+             raise RuntimeError("Failed to get existing installation settings")
+@@ -355,7 +364,6 @@ def performInstallation(answers, ui_package, interactive):
+ 
+     # perform installation:
+     prep_seq = getPrepSequence(answers, interactive)
+-    answers_pristine = answers.copy()
+     executeSequence(prep_seq, "Preparing for installation...", answers, ui_package, False)
+ 
+     # install from main repositories:
+@@ -365,12 +373,6 @@ def performInstallation(answers, ui_package, interactive):
+ 
+     answers['installed-repos'] = {}
+ 
+-    # A list needs to be used rather than a set since the order of updates is
+-    # important.  However, since the same repository might exist in multiple
+-    # locations or the same location might be listed multiple times, care is
+-    # needed to ensure that there are no duplicates.
+-    all_repositories = []
+-
+     def add_repos(all_repositories, repos):
+         """Add repositories to the list, ensuring no duplicates, that the main
+         repository is at the beginning, and that the order of the rest is
+@@ -383,25 +385,56 @@ def performInstallation(answers, ui_package, interactive):
+                 else:
+                     all_repositories.append(repo)
+ 
+-    # A list of sources coming from the answerfile
+-    if 'sources' in answers_pristine:
+-        for i in answers_pristine['sources']:
+-            repos = repository.repositoriesFromDefinition(i['media'], i['address'])
++    while True:
++        # A list needs to be used rather than a set since the order of updates is
++        # important.  However, since the same repository might exist in multiple
++        # locations or the same location might be listed multiple times, care is
++        # needed to ensure that there are no duplicates.
++        all_repositories = []
++
++        # A list of sources coming from the answerfile
++        if 'sources' in answers:
++            for i in answers['sources']:
++                repos = repository.repositoriesFromDefinition(i['media'], i['address'])
++                add_repos(all_repositories, repos)
++
++        # A single source coming from an interactive install
++        if 'source-media' in answers and 'source-address' in answers:
++            repos = repository.repositoriesFromDefinition(answers['source-media'], answers['source-address'])
++            add_repos(all_repositories, repos)
++
++        for media, address in answers['extra-repos']:
++            repos = repository.repositoriesFromDefinition(media, address)
+             add_repos(all_repositories, repos)
+ 
+-    # A single source coming from an interactive install
+-    if 'source-media' in answers_pristine and 'source-address' in answers_pristine:
+-        repos = repository.repositoriesFromDefinition(answers_pristine['source-media'], answers_pristine['source-address'])
+-        add_repos(all_repositories, repos)
++        if not all_repositories or all_repositories[0].identifier() != MAIN_REPOSITORY_NAME:
++            raise RuntimeError("No main repository found")
+ 
+-    for media, address in answers_pristine['extra-repos']:
+-        repos = repository.repositoriesFromDefinition(media, address)
+-        add_repos(all_repositories, repos)
++        # Check the GPG key of the main repository when a remote repository is used.
++        if answers['netinstall-gpg-check']:
++            all_repositories[0].setGpgCheck()
+ 
+-    if not all_repositories or all_repositories[0].identifier() != MAIN_REPOSITORY_NAME:
+-        raise RuntimeError("No main repository found")
++        try:
++            handleRepos(all_repositories, answers)
++            break
++        except repository.RepoSecurityConfigError as e:
++            if interactive:
++                # In net install mode, we cannot have more than 1 remote repository.
++                # (The RepoSecurityConfigError exception is only thrown in this mode.)
++                #
++                # It's difficult to handle many repositories because: How can we
++                # retrieve a stable state if all packages of one repository have been
++                # installed successfully but there's been installation errors on other
++                # repositories?
++                assert(answers['source-media'] == 'url')
++                assert(len(all_repositories) == 1)
++                installer = ui_package.installer
++                if installer.screens.reconfigure_repo(str(e)) == REPEAT_STEP:
++                    # Reconfigure.
++                    answers = installer.reconfigure_source_location_sequence(answers)
++                    continue
++            raise
+ 
+-    handleRepos(all_repositories, answers)
+     all_repositories[0].installKeys(answers['mounts']['root'])
+ 
+     # Find repositories that we installed from removable media
+@@ -410,10 +443,20 @@ def performInstallation(answers, ui_package, interactive):
+         if r.accessor().canEject():
+             r.accessor().eject()
+ 
++    # XCP-ng: so, very unfortunately we don't remember with precision why this was added and
++    # no commit message or comment can help us here.
++    # It may be related to the fact that the "all_repositories" above doesn't contain
++    # the installation CD-ROM or USB stick in the case of a netinstall.
++    # Question: why it is needed at all since there's no repository on the netinstall
++    # installation media?
++    if answers.get('netinstall'):
++        for device in getRemovableDeviceList():
++            util.runCmd2(['eject', device])
++
+     if interactive:
+         # Add supp packs in a loop
+         while True:
+-            media_ans = dict(answers_pristine)
++            media_ans = dict(answers)
+             del media_ans['source-media']
+             del media_ans['source-address']
+             media_ans = ui_package.installer.more_media_sequence(media_ans)
+@@ -1082,6 +1125,8 @@ def prepFallback(mounts, primary_disk, primary_partnum):
+ def buildBootLoaderMenu(mounts, xen_version, xen_kernel_version, boot_config, serial, boot_serial, host_config, primary_disk, disk_label_suffix, fcoe_interfaces):
+     short_version = kernelShortVersion(xen_kernel_version)
+     common_xen_params = "dom0_mem=%dM,max:%dM" % ((host_config['dom0-mem'],) * 2)
++    if "sched-gran" in host_config:
++        common_xen_params += " %s" % host_config["sched-gran"]
+     common_xen_unsafe_params = "watchdog ucode=scan dom0_max_vcpus=1-%d" % host_config['dom0-vcpus']
+     safe_xen_params = ("nosmp noreboot noirqbalance no-mce no-bootscrub "
+                        "no-numa no-hap no-mmcfg max_cstate=0 "
+@@ -1191,7 +1236,11 @@ def installBootLoader(mounts, disk, partition_table_type, boot_partnum, primary_
+                 setEfiBootEntry(mounts, disk, boot_partnum, install_type, branding)
+         else:
+             if location == constants.BOOT_LOCATION_MBR:
+-                installGrub2(mounts, disk, False)
++                if diskutil.is_raid(disk):
++                    for member in diskutil.getDeviceSlaves(disk):
++                        installGrub2(mounts, member, False)
++                else:
++                    installGrub2(mounts, disk, False)
+             else:
+                 installGrub2(mounts, root_partition, True)
+ 
+@@ -1721,6 +1770,57 @@ def touchSshAuthorizedKeys(mounts):
+     fh = open("%s/root/.ssh/authorized_keys" % mounts['root'], 'a')
+     fh.close()
+ 
++def importYumAndRpmGpgKeys(mounts):
++    # Python script that uses yum functions to import the GPG key for our repositories
++    import_yum_keys = """#!/bin/env python
++from __future__ import print_function
++from yum import YumBase
++
++def retTrue(*args, **kwargs):
++    return True
++
++base = YumBase()
++for repo in base.repos.repos.itervalues():
++    if repo.id.startswith('xcp-ng'):
++        print("*** Importing GPG key for repository %s - %s" % (repo.id, repo.name))
++        base.getKeyForRepo(repo, callback=retTrue)
++"""
++    internal_tmp_filepath = '/tmp/import_yum_keys.py'
++    external_tmp_filepath = mounts['root'] + internal_tmp_filepath
++    with open(external_tmp_filepath, 'w') as f:
++        f.write(import_yum_keys)
++    # bind mount /dev, necessary for NSS initialization without which RPM won't work
++    util.bindMount('/dev', "%s/dev" % mounts['root'])
++    try:
++        util.runCmd2(['chroot', mounts['root'], 'python', internal_tmp_filepath])
++        util.runCmd2(['chroot', mounts['root'], 'rpm', '--import', '/etc/pki/rpm-gpg/RPM-GPG-KEY-xcpng'])
++    finally:
++        util.umount("%s/dev" % mounts['root'])
++        os.unlink(external_tmp_filepath)
++
++def postInstallAltKernel(mounts, kernel_alt):
++    """ Install our alternate kernel. Must be called after the bootloader installation. """
++    if not kernel_alt:
++        logger.log('kernel-alt not installed')
++        return
++
++    util.bindMount("/proc", "%s/proc" % mounts['root'])
++    util.bindMount("/sys", "%s/sys" % mounts['root'])
++    util.bindMount("/dev", "%s/dev" % mounts['root'])
++
++    try:
++        rc, out = util.runCmd2(['chroot', mounts['root'], 'rpm', '-q', 'kernel-alt', '--qf', '%{version}'],
++                               with_stdout=True)
++        version = out
++        # Generate the initrd as it was disabled during initial installation
++        util.runCmd2(['chroot', mounts['root'], 'dracut', '-f', '/boot/initrd-%s.img' % version, version])
++
++        # Update grub
++        util.runCmd2(['chroot', mounts['root'], 'python', '/usr/lib/python2.7/site-packages/xcp/updategrub.py', 'add', 'kernel-alt', version])
++    finally:
++        util.umount("%s/dev" % mounts['root'])
++        util.umount("%s/sys" % mounts['root'])
++        util.umount("%s/proc" % mounts['root'])
+ 
+ ################################################################################
+ # OTHER HELPERS
+diff --git a/constants.py b/constants.py
+index 60a905b..871c95d 100644
+--- a/constants.py
++++ b/constants.py
+@@ -73,13 +73,6 @@ def error_string(error, logname, with_hd):
+         ERROR_STRING_KNOWN_ERROR: "An unrecoverable error has occurred.  The error was:\n\n%s\n"
+     }
+ 
+-    if version.PRODUCT_VERSION:
+-        ERROR_STRINGS = {
+-            ERROR_STRING_UNKNOWN_ERROR_WITH_HD: "An unrecoverable error has occurred.  The details of the error can be found in the log file, which has been written to /tmp/%s (and /root/%s on your hard disk if possible).\n\nPlease refer to your user guide or contact a Technical Support Representative for more details.",
+-            ERROR_STRING_UNKNOWN_ERROR_WITHOUT_HD: "An unrecoverable error has occurred.  The details of the error can be found in the log file, which has been written to /tmp/%s.\n\nPlease refer to your user guide or contact a Technical Support Representative for more details.",
+-            ERROR_STRING_KNOWN_ERROR: "An unrecoverable error has occurred.  The error was:\n\n%s\n\nPlease refer to your user guide, or contact a Technical Support Representative, for further details."
+-            }
+-
+     if error == "":
+         if with_hd:
+             return ERROR_STRINGS[ERROR_STRING_UNKNOWN_ERROR_WITH_HD] % (logname, logname)
+@@ -153,6 +146,8 @@ OLD_BLOB_DIRECTORY = "var/xapi/blobs"
+ BLOB_DIRECTORY = "var/lib/xcp/blobs"
+ 
+ MAIN_REPOSITORY_NAME = 'xcp:main'
++MAIN_REPOSITORY_GPG_KEY_FILE = '/opt/xensource/installer/RPM-GPG-KEY-xcpng'
++
+ MAIN_XS_REPOSITORY_NAME = 'xs:main'
+ INTERNAL_REPOS = [MAIN_XS_REPOSITORY_NAME, "xs:xenserver-transfer-vm", "xs:linux", "xcp:extras"]
+ 
+diff --git a/disktools.py b/disktools.py
+index 9bb48fb..a5209bc 100644
+--- a/disktools.py
++++ b/disktools.py
+@@ -492,7 +492,7 @@ def diskDevice(partitionDevice):
+ 
+ def determineMidfix(device):
+     DISK_PREFIX = '/dev/'
+-    P_STYLE_DISKS = [ 'cciss', 'ida', 'rd', 'sg', 'i2o', 'amiraid', 'iseries', 'emd', 'carmel', 'mapper/', 'nvme', 'md' ]
++    P_STYLE_DISKS = [ 'cciss', 'ida', 'rd', 'sg', 'i2o', 'amiraid', 'iseries', 'emd', 'carmel', 'mapper/', 'nvme', 'md', 'mmcblk' ]
+     PART_STYLE_DISKS = [ 'disk/by-id' ]
+ 
+     for key in P_STYLE_DISKS:
+diff --git a/diskutil.py b/diskutil.py
+index 5a28862..8ae7fd9 100644
+--- a/diskutil.py
++++ b/diskutil.py
+@@ -126,6 +126,9 @@ for major in range(48, 56):
+ # /dev/md    : md has major 9: each device has 15 minors)
+ disk_nodes += [ (9, x * 16) for x in range(16) ]
+ 
++# /dev/mmcblk: mmcblk has major 179, each device usually (per kernel) has 7 minors
++disk_nodes += [ (179, x * 8) for x in range(32) ]
++
+ def getDiskList():
+     # read the partition tables:
+     parts = open("/proc/partitions")
+@@ -166,6 +169,20 @@ def getDiskList():
+ 
+     return disks
+ 
++def create_raid(configuration):
++    if configuration:
++        for raid_device, members in configuration.viewitems():
++            # allows for idempotence
++            if not os.path.exists(raid_device):
++                for dev in members:
++                    util.runCmd2(['mdadm', '--zero-superblock', '--force', dev])
++                    # let it fail without catching
++                cmd = ['mdadm', '--create', raid_device, '--run', '--metadata=1.0', '--level=mirror',
++                       '--raid-devices=%s' % (len(members))] + members
++                rc, out, err = util.runCmd2(cmd, with_stdout=True, with_stderr=True)
++                if rc != 0:
++                    raise Exception('Error running: %s\n%s\n\n%s' % (' '.join(cmd), out, err))
++
+ def getPartitionList():
+     disks = getDiskList()
+     rv  = []
+diff --git a/doc/answerfile.txt b/doc/answerfile.txt
+index ef66bfc..1e010e2 100644
+--- a/doc/answerfile.txt
++++ b/doc/answerfile.txt
+@@ -33,6 +33,17 @@ Restore:
+   ...
+ </restore>
+ 
++
++Concerning clean install, re-install and upgrade:
++
++  Optional attributes:
++
++      netinstall-gpg-check=bool
++
++          Check authenticity of repository metadata and RPMs (GPG signatures) (new in 8.0)
++
++          Default: True
++
+ Common Elements
+ ---------------
+ 
+@@ -146,6 +157,15 @@ Common Elements
+     Used by Dell factory install to destroy utility partitions to
+     allow GPT to be used.
+ 
++  <raid device=dev>
++    <disk>dev1</disk>
++    <disk>dev2</disk>
++  </raid>?
++
++    Specifies the target disks and md device for creating a 
++    software RAID 1 array. The md device can then be used in 
++    <primary-disk> below. (new in xcp-ng 7.5.0-2 and 7.6)
++
+ 
+   <primary-disk>dev</primary-disk>
+ 
+diff --git a/install.py b/install.py
+index 684bd75..574ca3c 100755
+--- a/install.py
++++ b/install.py
+@@ -145,6 +145,14 @@ def go(ui, args, answerfile_address, answerfile_script):
+         elif opt == "--cc-preparations":
+             constants.CC_PREPARATIONS = True
+             results['network-backend'] = constants.NETWORK_BACKEND_BRIDGE
++        # XCP-ng addition: alternate kernel
++        elif opt == "--kernel-alt":
++            results['kernel-alt'] = True
++            logger.log("Using alternate kernel.")
++        # XCP-ng: netinstall
++        elif opt == "--netinstall":
++            results['netinstall'] = True
++            logger.log("This is a netinstall.")
+ 
+     if boot_console and not serial_console:
+         serial_console = boot_console
+diff --git a/product.py b/product.py
+index 8a1fe5d..af44d80 100644
+--- a/product.py
++++ b/product.py
+@@ -385,6 +385,11 @@ class ExistingInstallation:
+             (dom0_mem, dom0_mem_min, dom0_mem_max) = xcp.dom0.parse_mem(dom0_mem_arg[0])
+             if dom0_mem:
+                 results['host-config']['dom0-mem'] = dom0_mem / 1024 / 1024
++
++            #   - sched-gran
++            sched_gran = next((x for x in xen_args if x.startswith('sched-gran=')), None)
++            if sched_gran:
++                results['host-config']['sched-gran'] = sched_gran
+         except:
+             pass
+         self.unmount_boot()
+diff --git a/repository.py b/repository.py
+index aefe8bc..5f8f442 100644
+--- a/repository.py
++++ b/repository.py
+@@ -31,7 +31,7 @@ import diskutil
+ import hardware
+ import version
+ import util
+-from util import dev_null
++from util import dev_null, elide
+ from xcp.version import *
+ from xcp import logger
+ import cpiofile
+@@ -56,7 +56,10 @@ class RepoFormatError(Exception):
+ class UnknownPackageType(Exception):
+     pass
+ 
+-class ErrorInstallingPackage(Exception):
++class UnrecoverableRepoError(Exception):
++    pass
++
++class RepoSecurityConfigError(Exception):
+     pass
+ 
+ class Repository(object):
+@@ -105,7 +108,6 @@ debuglevel=2
+ logfile=/var/log/yum.log
+ exactarch=1
+ obsoletes=1
+-gpgcheck=0
+ plugins=0
+ installonlypkgs=
+ distroverpkg=xenserver-release
+@@ -115,6 +117,7 @@ history_record=false
+ 
+     def __init__(self, accessor):
+         Repository.__init__(self, accessor)
++        self._gpg_key = ""
+ 
+     def _parse_repodata(self, accessor):
+         # Read packages from xml
+@@ -153,6 +156,9 @@ history_record=false
+             pkg.type = 'rpm'
+             self._packages.append(pkg)
+ 
++    def _setGpgKey(self, gpg_key):
++        self._gpg_key = gpg_key
++
+     def __repr__(self):
+         return "%s@yum" % self._identifier
+ 
+@@ -174,16 +180,20 @@ history_record=false
+         installed_repos[str(self)] = self
+         return installed_repos
+ 
+-    def _installPackages(self, progress_callback, mounts):
++    def _installPackages(self, progress_callback, mounts, kernel_alt):
+         url = self._accessor.url()
+         logger.log("URL: " + str(url))
++        gpgcheck = bool(self._gpg_key)
+         with open('/root/yum.conf', 'w') as yum_conf:
+             yum_conf.write(self._yum_conf)
+             yum_conf.write("""
+ [install]
+ name=install
+ baseurl=%s
+-""" % url.getPlainURL())
++gpgcheck=%d
++gpgkey=%s
++repo_gpgcheck=%d
++""" % (url.getPlainURL(), gpgcheck, self._gpg_key, gpgcheck))
+             username = url.getUsername()
+             if username is not None:
+                 yum_conf.write("username=%s\n" % (url.getUsername(),))
+@@ -196,6 +206,8 @@ baseurl=%s
+         # Use a temporary file to avoid deadlocking
+         stderr = tempfile.TemporaryFile()
+ 
++        if kernel_alt:
++            self._targets.append('kernel-alt')
+         yum_command = ['yum', '-c', '/root/yum.conf',
+                        '--installroot', mounts['root'],
+                        'install', '-y'] + self._targets
+@@ -233,17 +245,41 @@ baseurl=%s
+         if stderr:
+             logger.log("YUM stderr: %s" % stderr.strip())
+ 
+-        if rv:
+-            logger.log("Yum exited with %d" % rv)
+-            raise ErrorInstallingPackage("Error installing packages")
+-
+         shutil.rmtree(os.path.join(mounts['root'], self._cachedir))
+         self.enableInitrdCreation()
+ 
+-    def installPackages(self, progress_callback, mounts):
++        if rv:
++            logger.log("Yum exited with %d" % rv)
++            # See:
++            # https://github.com/rpm-software-management/urlgrabber/blob/master/urlgrabber/grabber.py#L725
++            # https://github.com/rpm-software-management/yum/blob/master/yum/yumRepo.py#L1709
++            if (stderr.find('repomd.xml.asc: [Errno 14]', 0) >= 0 or
++                stderr.find('repomd.xml: [Errno -1]', 0) >= 0):
++                raise RepoSecurityConfigError(
++"""The authenticity of the repository metadata could not be established.\n
++Aborting installation.\n
++If you are using your own modified (and trusted) repository over a trusted network, you may consider disabling authenticity verification."""
++                )
++            else:
++                # See:
++                # https://github.com/rpm-software-management/rpm/blob/fc51fc39cff7970b10ef4da30f75d1db8eaa8025/lib/package.c#L311
++                # https://github.com/rpm-software-management/rpm/blob/b4c832caed0da0c4b0710cfe2510203a3940c2db/rpmio/rpmlog.c#L190
++                # https://github.com/rpm-software-management/rpm/blob/362c4401979f896de1e69a3e18d33954953912cc/lib/rpmvs.c#L283
++                # https://github.com/rpm-software-management/rpm/blob/362c4401979f896de1e69a3e18d33954953912cc/lib/rpmvs.c#L491
++                res = re.match('^(?:warning|error): (?:/.*/)?([^/]+.rpm): (?:.*) (?:BAD|NOKEY|NOTTRUSTED|NOTFOUND|UNKNOWN)', stderr)
++                if res:
++                    raise RepoSecurityConfigError(
++"""The authenticity of the %s package could not be established.\n
++Aborting installation.\n
++If you are using your own modified (and trusted) repository over a trusted network, you may consider disabling authenticity verification.""" % \
++                        elide(res.groups()[0], 40)
++                    )
++            raise UnrecoverableRepoError("Error installing packages")
++
++    def installPackages(self, progress_callback, mounts, kernel_alt=False):
+         self._accessor.start()
+         try:
+-            self._installPackages(progress_callback, mounts)
++            self._installPackages(progress_callback, mounts, kernel_alt)
+         finally:
+             self._accessor.finish()
+ 
+@@ -260,7 +296,7 @@ class MainYumRepository(YumRepository):
+     """Represents a Yum repository containing the main XenServer installation."""
+ 
+     INFO_FILENAME = ".treeinfo"
+-    _targets = ['@xenserver_base', '@xenserver_dom0']
++    _targets = ['xcp-ng-deps']
+     _identifier = MAIN_REPOSITORY_NAME
+ 
+     def __init__(self, accessor):
+@@ -309,6 +345,13 @@ class MainYumRepository(YumRepository):
+         # It is created after the yum install phase.
+         confdir = os.path.join(root, 'etc', 'dracut.conf.d')
+         self._conffile = os.path.join(confdir, 'xs_disable.conf')
++
++        # makedirs throws an exception if the directory exists.
++        # It's the case if the repository is reconfigured by the user
++        # in the installation process. Remove it is a good thing to retrieve a
++        # proper state.
++        shutil.rmtree(confdir, True)
++
+         os.makedirs(confdir, 0775)
+         with open(self._conffile, 'w') as f:
+             print >> f, 'echo Skipping initrd creation during host installation'
+@@ -344,9 +387,12 @@ class MainYumRepository(YumRepository):
+         except Exception as e:
+             logger.log(str(e))
+             self._accessor.finish()
+-            raise ErrorInstallingPackage("Error installing key files")
++            raise UnrecoverableRepoError("Error installing key files")
+         self._accessor.finish()
+ 
++    def setGpgCheck(self, status = True):
++        self._setGpgKey(('file://' + MAIN_REPOSITORY_GPG_KEY_FILE) if status else '')
++
+ class UpdateYumRepository(YumRepository):
+     """Represents a Yum repository containing packages and associated meta data for an update."""
+ 
+diff --git a/restore.py b/restore.py
+index 5801e12..f16c702 100644
+--- a/restore.py
++++ b/restore.py
+@@ -145,7 +145,11 @@ def restoreFromBackup(backup, progress=lambda x: ()):
+                     backend.setEfiBootEntry(mounts, disk, boot_partnum, constants.INSTALL_TYPE_RESTORE, branding)
+                 else:
+                     if location == constants.BOOT_LOCATION_MBR:
+-                        backend.installGrub2(mounts, disk, False)
++                        if diskutil.is_raid(disk):
++                            for member in diskutil.getDeviceSlaves(disk):
++                                backend.installGrub2(mounts, member, False)
++                        else:
++                            backend.installGrub2(mounts, disk, False)
+                     else:
+                         backend.installGrub2(mounts, restore_partition, True)
+             else:
+diff --git a/tui/__init__.py b/tui/__init__.py
+index ff11752..c00d694 100644
+--- a/tui/__init__.py
++++ b/tui/__init__.py
+@@ -18,6 +18,7 @@ import traceback
+ import constants
+ import sys
+ from xcp import logger
++import platform
+ 
+ screen = None
+ help_pad = [33, 17, 16]
+@@ -38,7 +39,7 @@ To advance to the next screen navigate to the Ok button and press Enter or press
+ def init_ui():
+     global screen
+     screen = SnackScreen()
+-    screen.drawRootText(0, 0, "Welcome to %s - Version %s" % (PRODUCT_BRAND or PLATFORM_NAME, PRODUCT_VERSION or PLATFORM_VERSION))
++    screen.drawRootText(0, 0, "Welcome to %s - Version %s (Kernel %s)" % (PRODUCT_BRAND or PLATFORM_NAME, PRODUCT_VERSION or PLATFORM_VERSION, platform.release()))
+     if PRODUCT_BRAND:
+         if len(COPYRIGHT_YEARS) > 0:
+             screen.drawRootText(0, 1, "Copyright (c) %s %s" % (COPYRIGHT_YEARS, COMPANY_NAME_LEGAL))
+diff --git a/tui/init.py b/tui/init.py
+index 292b252..fd12249 100644
+--- a/tui/init.py
++++ b/tui/init.py
+@@ -67,7 +67,7 @@ def driver_disk_sequence(answers, driver_repos):
+                  predicates=[lambda a: a['source-media'] != 'local']),
+         uic.Step(tui.repo.get_source_location,
+                  predicates=[lambda a: a['source-media'] != 'local'],
+-                 args=[False]),
++                 args=[False, False]),
+         uic.Step(tui.repo.confirm_load_repo, args=['driver', driver_repos]),
+         ]
+     rc = uicontroller.runSequence(seq, answers)
+diff --git a/tui/installer/__init__.py b/tui/installer/__init__.py
+index fa230e6..637c3ed 100644
+--- a/tui/installer/__init__.py
++++ b/tui/installer/__init__.py
+@@ -28,6 +28,9 @@ import xmlrpclib
+ 
+ from snack import *
+ 
++is_not_restore_fn = lambda a: a['install-type'] != constants.INSTALL_TYPE_RESTORE
++is_using_remote_media_fn = lambda a: 'source-media' in a and a['source-media'] in ['url', 'nfs']
++
+ def need_networking(answers):
+     if 'source-media' in answers and \
+            answers['source-media'] in ['url', 'nfs']:
+@@ -37,7 +40,21 @@ def need_networking(answers):
+         return (settings['master'] is not None)
+     return False
+ 
+-is_using_remote_media_fn = lambda a: 'source-media' in a and a['source-media'] in ['url', 'nfs']
++def get_main_source_location_sequence():
++    uis = tui.installer.screens
++    Step = uicontroller.Step
++
++    return [
++        Step(tui.repo.select_repo_source,
++             args=["Select Installation Source", "Please select the type of source you would like to use for this installation"],
++             predicates=[is_not_restore_fn]),
++        Step(uis.setup_runtime_networking,
++             predicates=[need_networking]),
++        Step(tui.repo.get_source_location,
++             args=[True, True],
++             predicates=[is_using_remote_media_fn]),
++        Step(tui.repo.verify_source, args=['installation', True], predicates=[is_not_restore_fn])
++    ]
+ 
+ def runMainSequence(results, ram_warning, vt_warning, suppress_extra_cd_dialog):
+     """ Runs the main installer sequence and updates results with a
+@@ -59,7 +76,6 @@ def runMainSequence(results, ram_warning, vt_warning, suppress_extra_cd_dialog):
+ 
+     is_reinstall_fn = lambda a: a['install-type'] == constants.INSTALL_TYPE_REINSTALL
+     is_clean_install_fn = lambda a: a['install-type'] == constants.INSTALL_TYPE_FRESH
+-    is_not_restore_fn = lambda a: a['install-type'] != constants.INSTALL_TYPE_RESTORE
+ 
+     def requires_backup(answers):
+         return "installation-to-overwrite" in answers and \
+@@ -125,6 +141,7 @@ def runMainSequence(results, ram_warning, vt_warning, suppress_extra_cd_dialog):
+         results['preserve-settings'] = False
+ 
+     seq = [
++        Step(uis.kernel_warning),
+         Step(uis.welcome_screen),
+         Step(uis.eula_screen),
+         Step(uis.hardware_warnings,
+@@ -151,18 +168,10 @@ def runMainSequence(results, ram_warning, vt_warning, suppress_extra_cd_dialog):
+         Step(uis.select_guest_disks,
+              predicates=[is_clean_install_fn]),
+         Step(uis.confirm_erase_volume_groups,
+-             predicates=[is_clean_install_fn]),
+-        Step(tui.repo.select_repo_source,
+-             args=["Select Installation Source", "Please select the type of source you would like to use for this installation"],
+-             predicates=[is_not_restore_fn]),
+-        Step(uis.setup_runtime_networking,
+-             predicates=[need_networking]),
++             predicates=[is_clean_install_fn])
++    ] + get_main_source_location_sequence() + [
+         Step(uis.master_not_upgraded,
+              predicates=[out_of_order_pool_upgrade_fn]),
+-        Step(tui.repo.get_source_location,
+-             args=[True],
+-             predicates=[is_using_remote_media_fn]),
+-        Step(tui.repo.verify_source, args=['installation', True], predicates=[is_not_restore_fn]),
+         Step(uis.get_root_password,
+              predicates=[is_not_restore_fn, not_preserve_settings]),
+         Step(uis.get_admin_interface,
+@@ -198,10 +207,14 @@ def more_media_sequence(answers):
+         Step(uis.setup_runtime_networking,
+              predicates=[more_media_fn, need_networking]),
+         Step(tui.repo.get_source_location,
+-             args=[False],
++             args=[False, False],
+              predicates=[more_media_fn, is_using_remote_media_fn]),
+         Step(tui.repo.verify_source, args=['installation', False],
+              predicates=[more_media_fn]),
+         ]
+     uicontroller.runSequence(seq, answers)
+     return answers
++
++def reconfigure_source_location_sequence(answers):
++    uicontroller.runSequence(get_main_source_location_sequence(), answers)
++    return answers
+diff --git a/tui/installer/screens.py b/tui/installer/screens.py
+index be7a001..f40876c 100644
+--- a/tui/installer/screens.py
++++ b/tui/installer/screens.py
+@@ -48,6 +48,28 @@ def selectDefault(key, entries):
+             return text, k
+     return None
+ 
++# kernel-alt warning
++def kernel_warning(answers):
++    if answers.get("kernel-alt"):
++        button = snackutil.ButtonChoiceWindowEx(
++            tui.screen,
++            "Alternate kernel",
++            """WARNING: you chose to install our alternative kernel (kernel-alt).
++
++It is based on our main kernel + upstream kernel.org patches, so it should be stable by construction. However it receives less testing than the main kernel.
++
++A boot menu entry for kernel-alt will be added, but we will still boot the main kernel by default.
++
++If kernel-alt works BETTER than the main kernel for you, TELL US so that we may fix the main kernel!
++""",
++            ['Ok', 'Reboot'], width=60)
++
++        if button == 'ok' or button is None:
++            return True
++        else:
++            return EXIT
++    return True
++
+ # welcome screen:
+ def welcome_screen(answers):
+     driver_answers = {'driver-repos': []}
+@@ -514,6 +536,56 @@ def setup_runtime_networking(answers):
+     # Get the answers from the user
+     return tui.network.requireNetworking(answers, defaults)
+ 
++def raid_array_ui(answers):
++    disk_entries = sorted_disk_list()
++    raid_disks = [de for de in disk_entries if diskutil.is_raid(de)]
++    raid_slaves = [slave for master in raid_disks for slave in diskutil.getDeviceSlaves(master)]
++    entries = []
++    for de in disk_entries:
++        if de not in raid_slaves and de not in raid_disks:
++            vendor, model, size = diskutil.getExtendedDiskInfo(de)
++            string_entry = "%s - %s [%s %s]" % (
++                diskutil.getHumanDiskName(de), diskutil.getHumanDiskSize(size), vendor, model)
++            entries.append((string_entry, de))
++    if len(entries) < 2:
++        return SKIP_SCREEN
++    text = TextboxReflowed(54, "Do you want to group disks in a software RAID 1 array?  \n\n" +
++                           "The array will be created immediately and erase all the target disks.")
++    buttons = ButtonBar(tui.screen, [('Create', 'create'), ('Back', 'back')])
++    scroll, _ = snackutil.scrollHeight(3, len(entries))
++    cbt = CheckboxTree(3, scroll)
++    for (c_text, c_item) in entries:
++        cbt.append(c_text, c_item, False)
++    gf = GridFormHelp(tui.screen, 'RAID Array', 'guestdisk:info', 1, 4)
++    gf.add(text, 0, 0, padding=(0, 0, 0, 1))
++    gf.add(cbt, 0, 1, padding=(0, 0, 0, 1))
++    gf.add(buttons, 0, 3, growx=1)
++    gf.addHotKey('F5')
++
++    tui.update_help_line([None, "<F5> disk info"])
++    loop = True
++    while loop:
++        rc = gf.run()
++        if rc == 'F5':
++            disk_more_info(cbt.getCurrent())
++        else:
++            loop = False
++    tui.screen.popWindow()
++    tui.screen.popHelpLine()
++
++    button = buttons.buttonPressed(rc)
++    if button == 'create':
++        selected = cbt.getSelection()
++        txt = 'The content of the disks %s will be deleted when you activate "Ok"' % (str(selected))
++        title = 'RAID array creation'
++        confirmation = snackutil.ButtonChoiceWindowEx(tui.screen, title, txt, ('Ok', 'Cancel'), 40, default=1)
++        if confirmation == 'ok':
++            answers['raid'] = {'/dev/md127': selected}
++            tui.progress.showMessageDialog("Please wait", "Creating raid array...")
++            diskutil.create_raid(answers['raid'])
++            tui.progress.clearModelessDialog()
++    return REPEAT_STEP
++
+ def disk_more_info(context):
+     if not context: return True
+ 
+@@ -542,14 +614,18 @@ def disk_more_info(context):
+     return True
+ 
+ def sorted_disk_list():
+-    return sorted(diskutil.getQualifiedDiskList(),
+-                  lambda x, y: len(x) == len(y) and cmp(x,y) or (len(x)-len(y)))
++    return sorted(set(diskutil.getQualifiedDiskList()),
++                  lambda x, y: len(x) == len(y) and cmp(x, y) or (len(x) - len(y)))
++
++def filter_out_raid_member(diskEntries):
++    raid_disks = [de for de in diskEntries if diskutil.is_raid(de)]
++    raid_slaves = set(member for master in raid_disks for member in diskutil.getDeviceSlaves(master))
++    return [e for e in diskEntries if e not in raid_slaves]
+ 
+ # select drive to use as the Dom0 disk:
+ def select_primary_disk(answers):
+     button = None
+-    diskEntries = sorted_disk_list()
+-
++    diskEntries = filter_out_raid_member(sorted_disk_list())
+     entries = []
+     target_is_sr = {}
+ 
+@@ -557,7 +633,6 @@ def select_primary_disk(answers):
+         min_primary_disk_size = constants.min_primary_disk_size
+     else:
+         min_primary_disk_size = constants.min_primary_disk_size_old
+-
+     for de in diskEntries:
+         (vendor, model, size) = diskutil.getExtendedDiskInfo(de)
+         if min_primary_disk_size <= diskutil.blockSizeToGBSize(size):
+@@ -598,7 +673,7 @@ def select_primary_disk(answers):
+ 
+ You may need to change your system settings to boot from this disk.""" % (MY_PRODUCT_BRAND),
+             entries,
+-            ['Ok', 'Back'], 55, scroll, height, default, help='pridisk:info',
++            ['Ok', 'Software RAID', 'Back'], 55, scroll, height, default, help='pridisk:info',
+             hotkeys={'F5': disk_more_info})
+ 
+         tui.screen.popHelpLine()
+@@ -639,7 +714,12 @@ You may need to change your system settings to boot from this disk.""" % (MY_PRO
+         else:
+             return LEFT_BACKWARDS if len(entries) == 1 else REPEAT_STEP
+ 
+-    if button is None: return SKIP_SCREEN
++    # XCP-ng: we replaced `SKIP_SCREEN` by `RIGHT_FORWARDS` for RAID support to avoid a loop after raid creation
++    if button is None: return RIGHT_FORWARDS
++
++    # XCP-ng
++    if button == 'software raid':
++        return raid_array_ui(answers)
+ 
+     return RIGHT_FORWARDS
+ 
+@@ -667,7 +747,7 @@ def check_sr_space(answers):
+     return EXIT
+ 
+ def select_guest_disks(answers):
+-    diskEntries = sorted_disk_list()
++    diskEntries = filter_out_raid_member(sorted_disk_list())
+ 
+     # CA-38329: filter out device mapper nodes (except primary disk) as these won't exist
+     # at XenServer boot and therefore cannot be added as physical volumes to Local SR.
+@@ -702,16 +782,19 @@ def select_guest_disks(answers):
+     cbt = CheckboxTree(3, scroll)
+     for (c_text, c_item) in entries:
+         cbt.append(c_text, c_item, c_item in currently_selected)
+-    txt = "Enable thin provisioning"
+-    if len(BRAND_VDI) > 0:
+-        txt += " (Optimized storage for %s)" % BRAND_VDI
++    txt = "Use EXT instead of LVM for local storage repository"
+     tb = Checkbox(txt, srtype == constants.SR_TYPE_EXT and 1 or 0)
+ 
+-    gf = GridFormHelp(tui.screen, 'Virtual Machine Storage', 'guestdisk:info', 1, 4)
++    explanations = Textbox(54, 2,
++                           "LVM: block based. May be faster. Thick provisioning.\n"
++                           "EXT: file based. May be slower. Thin provisioning.")
++
++    gf = GridFormHelp(tui.screen, 'Virtual Machine Storage', 'guestdisk:info', 1, 5)
+     gf.add(text, 0, 0, padding=(0, 0, 0, 1))
+     gf.add(cbt, 0, 1, padding=(0, 0, 0, 1))
+-    gf.add(tb, 0, 2, padding=(0, 0, 0, 1))
+-    gf.add(buttons, 0, 3, growx=1)
++    gf.add(tb, 0, 2, padding=(0, 0, 0, 0))
++    gf.add(explanations, 0, 3, padding=(0, 0, 0, 1))
++    gf.add(buttons, 0, 4, growx=1)
+     gf.addHotKey('F5')
+ 
+     tui.update_help_line([None, "<F5> more info"])
+@@ -1216,3 +1299,14 @@ Please remove any local media from the drive, and press Enter to reboot.""" % MY
+ 
+     return RIGHT_FORWARDS
+ 
++def reconfigure_repo(message):
++    button = ButtonChoiceWindow(
++        tui.screen,
++        "Repository error",
++        message,
++        ['Reconfigure', 'Cancel'],
++        width = 60, help = 'repowarn'
++        )
++
++    if button == 'cancel': return EXIT
++    return REPEAT_STEP
+diff --git a/tui/repo.py b/tui/repo.py
+index 46f2850..7ecbc71 100644
+--- a/tui/repo.py
++++ b/tui/repo.py
+@@ -99,6 +99,9 @@ def select_repo_source(answers, title, text, require_base_repo=True):
+     entries = [ ENTRY_LOCAL ]
+ 
+     default = ENTRY_LOCAL
++    if answers.get('netinstall'):
++        entries = []
++        default = ENTRY_URL
+     if len(answers['network-hardware'].keys()) > 0:
+         entries += [ ENTRY_URL, ENTRY_NFS ]
+ 
+@@ -129,9 +132,11 @@ def select_repo_source(answers, title, text, require_base_repo=True):
+         if require_base_repo and not interactive_check_repo_def(('local', ''), True):
+             return REPEAT_STEP
+ 
++    answers['netinstall-gpg-check'] = entry == 'url'
++
+     return RIGHT_FORWARDS
+ 
+-def get_url_location(answers, require_base_repo):
++def get_url_location(answers, require_base_repo, is_main_install):
+     text = "Please enter the URL for your HTTP or FTP repository and, optionally, a username and password"
+     url_field = Entry(50)
+     user_field = Entry(16)
+@@ -139,6 +144,7 @@ def get_url_location(answers, require_base_repo):
+     url_text = Textbox(11, 1, "URL:")
+     user_text = Textbox(11, 1, "Username:")
+     passwd_text = Textbox(11, 1, "Password:")
++    gpgcheck_cb = Checkbox("Check authenticity of repository metadata and RPMs (GPG signatures)", answers['netinstall-gpg-check'])
+ 
+     if 'source-address' in answers and answers['source-address'] != '':
+         url_field.set(answers['source-address'].getPlainURL())
+@@ -146,10 +152,12 @@ def get_url_location(answers, require_base_repo):
+             user_field.set(answers['source-address'].getUsername())
+         if answers['source-address'].getPassword() is not None:
+             passwd_field.set(answers['source-address'].getPassword())
++    else:
++        url_field.set('http://mirrors.xcp-ng.org/netinstall/8.2.1')
+ 
+     done = False
+     while not done:
+-        gf = GridFormHelp(tui.screen, "Specify Repository", 'geturlloc', 1, 3)
++        gf = GridFormHelp(tui.screen, "Specify Repository", 'geturlloc', 1, 4)
+         bb = ButtonBar(tui.screen, [ 'Ok', 'Back' ])
+         t = TextboxReflowed(50, text)
+ 
+@@ -163,7 +171,9 @@ def get_url_location(answers, require_base_repo):
+ 
+         gf.add(t, 0, 0, padding=(0, 0, 0, 1))
+         gf.add(entry_grid, 0, 1, padding=(0, 0, 0, 1))
+-        gf.add(bb, 0, 2, growx=1)
++        if is_main_install:
++            gf.add(gpgcheck_cb, 0, 2, padding=(0, 0, 0, 1))
++        gf.add(bb, 0, 3, growx=1)
+ 
+         button = bb.buttonPressed(gf.runOnce())
+ 
+@@ -181,10 +191,11 @@ def get_url_location(answers, require_base_repo):
+         if len(urlstr) > 0:
+             answers['source-address'] = util.URL(urlstr)
+             done = interactive_check_repo_def((answers['source-media'], answers['source-address']), require_base_repo)
++        answers['netinstall-gpg-check'] = is_main_install and gpgcheck_cb.selected()
+ 
+     return RIGHT_FORWARDS
+ 
+-def get_nfs_location(answers, require_base_rep):
++def get_nfs_location(answers, require_base_rep, is_main_install):
+     text = "Please enter the server and path of your NFS share (e.g. myserver:/my/directory)"
+     label = "NFS Path:"
+ 
+@@ -209,11 +220,11 @@ def get_nfs_location(answers, require_base_rep):
+ 
+     return RIGHT_FORWARDS
+ 
+-def get_source_location(answers, require_base_rep):
++def get_source_location(answers, require_base_rep, is_main_install):
+     if answers['source-media'] == 'url':
+-        return get_url_location(answers, require_base_rep)
++        return get_url_location(answers, require_base_rep, is_main_install)
+     else:
+-        return get_nfs_location(answers, require_base_rep)
++        return get_nfs_location(answers, require_base_rep, is_main_install)
+ 
+ def confirm_load_repo(answers, label, installed_repos):
+     cap_label = ' '.join(map(lambda a: a.capitalize(), label.split()))
+diff --git a/util.py b/util.py
+index 1292096..135b0d3 100644
+--- a/util.py
++++ b/util.py
+@@ -31,6 +31,12 @@ random.seed()
+ 
+ _dev_null_fh = None
+ 
++###
++# string helpers
++
++def elide(text, max_len):
++    return text[:max(max_len, 3) - 3] + "..." if len(text) > max_len else text
++
+ ###
+ # directory/tree management
+ 

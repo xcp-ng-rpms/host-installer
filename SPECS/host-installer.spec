@@ -1,12 +1,14 @@
 Summary: XenServer Installer
 Name: host-installer
 Version: 10.7.5.3
-Release: 1%{?dist}
+Release: 1.1%{?dist}
 License: GPL
 Group: Applications/System
 
 Source0: https://code.citrite.net/rest/archive/latest/projects/XS/repos/host-installer/archive?at=10.7.5.3&format=tar.gz&prefix=host-installer-10.7.5.3#/host-installer-10.7.5.3.tar.gz
 
+# XCP-ng patches
+Patch1000: host-installer-10.7.5.3-xcpng8.2.1.patch
 
 Provides: gitsha(https://code.citrite.net/rest/archive/latest/projects/XS/repos/host-installer/archive?at=10.7.5.3&format=tar.gz&prefix=host-installer-10.7.5.3#/host-installer-10.7.5.3.tar.gz) = 0fc00443f45a9e9298f591000942b7898c36c201
 
@@ -267,6 +269,10 @@ done
 rm -f /tmp/firmware-used.$$
 
 %changelog
+* Tue Nov 15 2022 Yann Dirson <yann.dirson@vates.fr> - 10.7.5.3-1.1
+- First package for XCP-ng, including a single diff from official source
+  to the v8.2.1 version
+
 * Tue Sep 7 2021 Lin Liu <lin.liu@citrix.com> - 10.7.5.3-1
 - CP-37663: Backport winbind to Yangtze
 
