@@ -1,12 +1,12 @@
-%global package_speccommit e2726e108c480a1796f01e3109580856df71189d
-%global package_srccommit v10.10.0
+%global package_speccommit c8000db509458c517b43c8704591a19cdd594b4f
+%global package_srccommit v10.10.1
 Summary: XenServer Installer
 Name: host-installer
-Version: 10.10.0
+Version: 10.10.1
 Release: 1%{?xsrel}%{?dist}
 License: GPL
 Group: Applications/System
-Source0: host-installer-10.10.0.tar.gz
+Source0: host-installer-10.10.1.tar.gz
 # This is where we get 'multipath.conf' from
 BuildRequires: sm xenserver-multipath xenserver-lvm2
 
@@ -262,6 +262,11 @@ done
 rm -f /tmp/firmware-used.$$
 
 %changelog
+* Tue Aug 09 2022 Ross Lagerwall <ross.lagerwall@citrix.com> - 10.10.1-1
+- CA-369534: Fix creating an SR during interactive installs
+- CA-369534: Preserve utility partitions when running interactively
+- CA-369130: Fix restore from backup
+
 * Mon Jun 06 2022 Mark Syms <mark.syms@citrix.com> - 10.10.0-1
 - CP-39332: Check gpg signing on repo
 
