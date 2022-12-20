@@ -1,12 +1,13 @@
-%global package_speccommit c8000db509458c517b43c8704591a19cdd594b4f
-%global package_srccommit v10.10.1
+%global package_speccommit b9f90b5e56b8af89cb3cd06867a1158b5c97e7d6
+%global package_srccommit v10.10.3
 Summary: XenServer Installer
 Name: host-installer
-Version: 10.10.1
+Version: 10.10.3
 Release: 1%{?xsrel}%{?dist}
-License: GPL
+# The entire source code is GPLv2 except for cpiofile.py which is MIT
+License: GPLv2 and MIT
 Group: Applications/System
-Source0: host-installer-10.10.1.tar.gz
+Source0: host-installer-10.10.3.tar.gz
 # This is where we get 'multipath.conf' from
 BuildRequires: sm xenserver-multipath xenserver-lvm2
 
@@ -201,6 +202,8 @@ rm -rf %{buildroot}
 %config /etc/multipath.conf.disabled
 /etc/dracut.conf.d/installer.conf
 
+%license LICENSE
+
 %files startup
 %defattr(775,root,root,-)
 
@@ -262,6 +265,13 @@ done
 rm -f /tmp/firmware-used.$$
 
 %changelog
+* Thu Oct 20 2022 Ross Lagerwall <ross.lagerwall@citrix.com> - 10.10.3-1
+- CA-369898: Replace PRODUCT_VERSION with PRODUCT_VERSION_TEXT
+- CA-369901: Fix out_of_order_pool_upgrade_fn
+- CP-40635: Capture all versions in support tarball
+- CP-40676: Clarify licensing
+- CP-40676: Switch upstream to GitHub
+
 * Tue Aug 09 2022 Ross Lagerwall <ross.lagerwall@citrix.com> - 10.10.1-1
 - CA-369534: Fix creating an SR during interactive installs
 - CA-369534: Preserve utility partitions when running interactively
