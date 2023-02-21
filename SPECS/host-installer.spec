@@ -1,13 +1,13 @@
-%global package_speccommit b9f90b5e56b8af89cb3cd06867a1158b5c97e7d6
-%global package_srccommit v10.10.3
+%global package_speccommit bb770bcb2fc2c6caae8c38f8122b1b9854df220e
+%global package_srccommit v10.10.4
 Summary: XenServer Installer
 Name: host-installer
-Version: 10.10.3
+Version: 10.10.4
 Release: 1%{?xsrel}%{?dist}
 # The entire source code is GPLv2 except for cpiofile.py which is MIT
 License: GPLv2 and MIT
 Group: Applications/System
-Source0: host-installer-10.10.3.tar.gz
+Source0: host-installer-10.10.4.tar.gz
 # This is where we get 'multipath.conf' from
 BuildRequires: sm xenserver-multipath xenserver-lvm2
 
@@ -265,6 +265,15 @@ done
 rm -f /tmp/firmware-used.$$
 
 %changelog
+* Mon Jan 23 2023 Ross Lagerwall <ross.lagerwall@citrix.com> - 10.10.4-1
+- CP-41369: Match Citrix Hypervisor when removing UEFI boot entry
+- util.runCmd2: log commands even in case of exceptions
+- Revert scanning of MD devices by major/minor
+- restore: tell user to remove install media before we reboot
+- Keep `xen-pciback.hide` when upgrading
+- tui: log it when excluding a disk because it is too small
+- Various docs updates
+
 * Thu Oct 20 2022 Ross Lagerwall <ross.lagerwall@citrix.com> - 10.10.3-1
 - CA-369898: Replace PRODUCT_VERSION with PRODUCT_VERSION_TEXT
 - CA-369901: Fix out_of_order_pool_upgrade_fn
