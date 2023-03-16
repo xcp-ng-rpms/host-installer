@@ -1,12 +1,12 @@
 %global package_speccommit e2726e108c480a1796f01e3109580856df71189d
-%global package_srccommit v10.10.0
+%global package_srccommit v10.10.5
 Summary: XenServer Installer
 Name: host-installer
-Version: 10.10.0
+Version: 10.10.5
 Release: 1.1.0.ipv6.1%{?xsrel}%{?dist}
 License: GPL
 Group: Applications/System
-Source0: host-installer-10.10.0.tar.gz
+Source0: host-installer-10.10.5.tar.gz
 
 # XCP-ng patches
 # git diff v10.10.0..v10.10.3-21-g3d5df76
@@ -268,7 +268,7 @@ done
 rm -f /tmp/firmware-used.$$
 
 %changelog
-* Thu Mar 16 2023 Benjamin Reis <benjamin.reis@vates.fr> - 10.10.0-1.1.0.ipv6.1
+* Thu Mar 16 2023 Benjamin Reis <benjamin.reis@vates.fr> - 10.10.5-1.1.0.ipv6.1
 - Add IPv6 patch
 
 * Tue Nov 23 2022 Yann Dirson <yann.dirson@vates.fr> - 10.10.0-1.1
