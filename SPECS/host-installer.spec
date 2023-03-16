@@ -10,7 +10,7 @@ Source0: host-installer-10.10.5.tar.gz
 
 # XCP-ng patches
 # git diff v10.10.0..v10.10.3-21-g3d5df76
-Patch1000: host-installer-10.10.0-xcpng8.3.patch
+Patch1000: host-installer-10.10.5-xcpng8.3.patch
 Patch1001: ipv6.patch
 
 # This is where we get 'multipath.conf' from
