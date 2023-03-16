@@ -3,7 +3,7 @@
 Summary: XenServer Installer
 Name: host-installer
 Version: 10.10.0
-Release: 1.1%{?xsrel}%{?dist}
+Release: 1.1.0.ipv6.1%{?xsrel}%{?dist}
 License: GPL
 Group: Applications/System
 Source0: host-installer-10.10.0.tar.gz
@@ -11,6 +11,7 @@ Source0: host-installer-10.10.0.tar.gz
 # XCP-ng patches
 # git diff v10.10.0..v10.10.3-21-g3d5df76
 Patch1000: host-installer-10.10.0-xcpng8.3.patch
+Patch1001: ipv6.patch
 
 # This is where we get 'multipath.conf' from
 BuildRequires: sm xenserver-multipath xenserver-lvm2
@@ -267,6 +268,9 @@ done
 rm -f /tmp/firmware-used.$$
 
 %changelog
+* Thu Mar 16 2023 Benjamin Reis <benjamin.reis@vates.fr> - 10.10.0-1.1.0.ipv6.1
+- Add IPv6 patch
+
 * Tue Nov 23 2022 Yann Dirson <yann.dirson@vates.fr> - 10.10.0-1.1
 - Include a diff from v10.10.0 to v10.10.3-21-g3d5df76
 
