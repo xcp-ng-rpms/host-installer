@@ -1,30 +1,8 @@
-From b91bf112ee7e56ce7f6c99b844c8fb0f76542968 Mon Sep 17 00:00:00 2001
-From: BenjiReis <benjamin.reis@vates.fr>
-Date: Thu, 15 Sep 2022 10:10:53 +0200
-Subject: [PATCH 1/8] Allow to install an host with IPv6 management interface
-
-Adds a screen to choose between IPv4, IPv6
-and dual stack (with IPv4 as primary address type for management).
-
-Write network conf file for IPv6 so that netinstall work in IPv6's modes
-
-Configure the host with an IPv6 management interface
-
-Signed-off-by: BenjiReis <benjamin.reis@vates.fr>
----
- backend.py               |  15 +-
- netinterface.py          |  80 +++++---
- netutil.py               |  20 +-
- tui/installer/screens.py |   8 +-
- tui/network.py           | 425 ++++++++++++++++++++++++++++-----------
- upgrade.py               |   6 +
- 6 files changed, 399 insertions(+), 155 deletions(-)
-
-diff --git a/backend.py b/backend.py
-index 1788db74..0ff1e8f4 100644
---- a/backend.py
-+++ b/backend.py
-@@ -1503,15 +1503,16 @@ def configureNetworking(mounts, admin_iface, admin_bridge, admin_config, hn_conf
+diff --git i/backend.py w/backend.py
+index 3c49932..7e64cff 100644
+--- i/backend.py
++++ w/backend.py
+@@ -1535,15 +1535,15 @@ def configureNetworking(mounts, admin_iface, admin_bridge, admin_config, hn_conf
              print >>mc, "NETMASK='%s'" % admin_config.netmask
              if admin_config.gateway:
                  print >>mc, "GATEWAY='%s'" % admin_config.gateway
@@ -37,52 +15,61 @@ index 1788db74..0ff1e8f4 100644
              print >>mc, "IPv6='%s'" % admin_config.ipv6addr
              if admin_config.ipv6_gateway:
                  print >>mc, "IPv6_GATEWAY='%s'" % admin_config.ipv6_gateway
-+        if admin_config.valid() and not admin_config.isDHCP():
-+            if manual_nameservers:
-+                print >>mc, "DNS='%s'" % (','.join(nameservers),)
-+            if domain:
++        if manual_nameservers:
++            print >>mc, "DNS='%s'" % (','.join(nameservers),)
++        if domain:
 +                print >>mc, "DOMAIN='%s'" % domain
          if admin_config.vlan:
              print >>mc, "VLAN='%d'" % admin_config.vlan
          mc.close()
-@@ -1553,12 +1554,18 @@ def configureNetworking(mounts, admin_iface, admin_bridge, admin_config, hn_conf
+@@ -1585,12 +1585,17 @@ def configureNetworking(mounts, admin_iface, admin_bridge, admin_config, hn_conf
      # now we need to write /etc/sysconfig/network
      nfd = open("%s/etc/sysconfig/network" % mounts["root"], "w")
      nfd.write("NETWORKING=yes\n")
-+    ipv6_conf = open("%s/etc/sysctl.d/91-net-ipv6.conf" % mounts["root"], "w")
-     if admin_config.modev6:
-         nfd.write("NETWORKING_IPV6=yes\n")
-         util.runCmd2(['chroot', mounts['root'], 'systemctl', 'enable', 'ip6tables'])
-+        for i in ['all', 'default']:
-+            ipv6_conf.write('net.ipv6.conf.%s.disable_ipv6=0\n' % i)
-     else:
-         nfd.write("NETWORKING_IPV6=no\n")
-+        for i in ['all', 'default']:
-+            ipv6_conf.write('net.ipv6.conf.%s.disable_ipv6=1\n' % i)
-         netutil.disable_ipv6_module(mounts["root"])
-+    ipv6_conf.close()
+-    if admin_config.modev6:
+-        nfd.write("NETWORKING_IPV6=yes\n")
+-        util.runCmd2(['chroot', mounts['root'], 'systemctl', 'enable', 'ip6tables'])
+-    else:
+-        nfd.write("NETWORKING_IPV6=no\n")
+-        netutil.disable_ipv6_module(mounts["root"])
++    with open("%s/etc/sysctl.d/91-net-ipv6.conf" % mounts["root"], "w") as ipv6_conf:
++        if admin_config.modev6:
++            nfd.write("NETWORKING_IPV6=yes\n")
++            util.runCmd2(['chroot', mounts['root'], 'systemctl', 'enable', 'ip6tables'])
++            for i in ['all', 'default']:
++                ipv6_conf.write('net.ipv6.conf.%s.disable_ipv6=0\n' % i)
++        else:
++            nfd.write("NETWORKING_IPV6=no\n")
++            for i in ['all', 'default']:
++                ipv6_conf.write('net.ipv6.conf.%s.disable_ipv6=1\n' % i)
++            netutil.disable_ipv6_module(mounts["root"])
      nfd.write("IPV6_AUTOCONF=no\n")
      nfd.write('NTPSERVERARGS="iburst prefer"\n')
      nfd.close()
-diff --git a/netinterface.py b/netinterface.py
-index 0cdcad47..72276092 100644
---- a/netinterface.py
-+++ b/netinterface.py
-@@ -24,8 +24,8 @@ class NetInterface:
-     Autoconf = 3
-
+diff --git i/netinterface.py w/netinterface.py
+index 0cdcad4..e3e8709 100644
+--- i/netinterface.py
++++ w/netinterface.py
+@@ -25,7 +25,7 @@ class NetInterface:
+ 
      def __init__(self, mode, hwaddr, ipaddr=None, netmask=None, gateway=None,
--                 dns=None, domain=None, vlan=None):
+                  dns=None, domain=None, vlan=None):
 -        assert mode is None or mode == self.Static or mode == self.DHCP
-+                 dns=None, domain=None, vlan=None, ipv6=False):
 +        assert mode in [None, self.Static, self.DHCP, self.Autoconf]
          if ipaddr == '':
              ipaddr = None
          if netmask == '':
-@@ -40,26 +40,29 @@ def __init__(self, mode, hwaddr, ipaddr=None, netmask=None, gateway=None,
-             assert ipaddr
-             assert netmask
-
+@@ -36,31 +36,25 @@ class NetInterface:
+             dns = None
+         elif isinstance(dns, str):
+             dns = [ dns ]
+-        if mode == self.Static:
+-            assert ipaddr
+-            assert netmask
++        is_static = mode == self.Static
++        if is_static:
++            assert ipaddr and netmask
+ 
 -        self.mode = mode
          self.hwaddr = hwaddr
 -        if mode == self.Static:
@@ -92,40 +79,32 @@ index 0cdcad47..72276092 100644
 -            self.dns = dns
 -            self.domain = domain
 -        else:
-+        if ipv6:
-+            self.mode = None
-             self.ipaddr = None
-             self.netmask = None
-             self.gateway = None
+-            self.ipaddr = None
+-            self.netmask = None
+-            self.gateway = None
 -            self.dns = None
 -            self.domain = None
 -        self.vlan = vlan
-
+ 
 -        # Initialise IPv6 to None.
--        self.modev6 = None
--        self.ipv6addr = None
--        self.ipv6_gateway = None
-+            self.modev6 = mode
-+            self.ipv6addr = ipaddr + "/" + netmask if mode == self.Static else None
-+            self.ipv6_gateway = gateway if mode == self.Static else None
-+        else:
-+            self.modev6 = None
-+            self.ipv6addr = None
-+            self.ipv6_gateway = None
+         self.modev6 = None
+         self.ipv6addr = None
+         self.ipv6_gateway = None
+ 
++        self.mode = mode
++        self.ipaddr = ipaddr if is_static else None
++        self.netmask = netmask if is_static else None
++        self.gateway = gateway if is_static else None
 +
-+            self.mode = mode
-+            self.ipaddr = ipaddr if mode == self.Static else None
-+            self.netmask = netmask if mode == self.Static else None
-+            self.gateway = gateway if mode == self.Static else None
-+
-+        self.dns = dns if mode == self.Static else None
-+        self.domain = domain if mode == self.Static else None
++        self.dns = dns if is_static else None
++        self.domain = domain if is_static else None
 +        self.vlan = vlan
-
++
      def __repr__(self):
          hw = "hwaddr = '%s' " % self.hwaddr
-@@ -124,7 +127,10 @@ def valid(self):
-
+ 
+@@ -124,7 +118,10 @@ class NetInterface:
+ 
      def isStatic(self):
          """ Returns true if a static interface configuration is represented. """
 -        return self.mode == self.Static
@@ -133,18 +112,18 @@ index 0cdcad47..72276092 100644
 +
 +    def isDHCP(self):
 +        return self.mode == self.DHCP or (self.mode == None and self.modev6 == self.DHCP)
-
+ 
      def isVlan(self):
          return self.vlan is not None
-@@ -143,13 +149,12 @@ def writeDebStyleInterface(self, iface, f):
-
+@@ -143,13 +140,12 @@ class NetInterface:
+ 
          # Debian style interfaces are only used for the installer; dom0 only uses CentOS style
          # IPv6 is only enabled through answerfiles and so is not supported here.
 -        assert self.modev6 is None
 -        assert self.mode
 +        assert self.modev6 or self.mode
          iface_vlan = self.getInterfaceName(iface)
-
+ 
          if self.mode == self.DHCP:
              f.write("iface %s inet dhcp\n" % iface_vlan)
 -        else:
@@ -152,10 +131,10 @@ index 0cdcad47..72276092 100644
              # CA-11825: broadcast needs to be determined for non-standard networks
              bcast = self.getBroadcast()
              f.write("iface %s inet static\n" % iface_vlan)
-@@ -160,32 +165,57 @@ def writeDebStyleInterface(self, iface, f):
+@@ -160,32 +156,57 @@ class NetInterface:
              if self.gateway:
                  f.write("   gateway %s\n" % self.gateway)
-
+ 
 +        if self.modev6 == self.DHCP:
 +            f.write("iface %s inet6 dhcp\n" % iface_vlan)
 +        if self.modev6 == self.Autoconf:
@@ -169,12 +148,12 @@ index 0cdcad47..72276092 100644
      def writeRHStyleInterface(self, iface):
          """ Write a RedHat-style configuration entry for this interface to
          file object f using interface name iface. """
-
+ 
 -        assert self.modev6 is None
 -        assert self.mode
 +        assert self.modev6 or self.mode
          iface_vlan = self.getInterfaceName(iface)
-
+ 
          f = open('/etc/sysconfig/network-scripts/ifcfg-%s' % iface_vlan, 'w')
          f.write("DEVICE=%s\n" % iface_vlan)
          f.write("ONBOOT=yes\n")
@@ -212,14 +191,44 @@ index 0cdcad47..72276092 100644
              f.write("VLAN=yes\n")
 +
          f.close()
-
-
-diff --git a/netutil.py b/netutil.py
-index 898fe0ea..e570baf7 100644
---- a/netutil.py
-+++ b/netutil.py
+ 
+ 
+@@ -348,3 +369,15 @@ class NetInterface:
+ 
+         nic.addIPv6(modev6, ipv6addr, gatewayv6)
+         return nic
++
++class NetInterfaceV6(NetInterface):
++    def __init__(self, mode, hwaddr, ipaddr=None, netmask=None, gateway=None, dns=None, domain=None, vlan=None):
++        super().__init__(None, hwaddr, None, None, None, dns, domain, vlan)
++
++        is_static = mode == self.Static
++        ipv6addr = None
++        if is_static:
++            assert ipaddr and netmask
++            ipv6addr = ipaddr + "/" + netmask
++
++        self.addIPv6(mode, ipv6addr=ipv6addr, ipv6gw=gateway)
+diff --git i/netutil.py w/netutil.py
+index 898fe0e..b454912 100644
+--- i/netutil.py
++++ w/netutil.py
+@@ -4,12 +4,12 @@ import os
+ import diskutil
+ import util
+ import re
++import socket
+ import subprocess
+ import time
+ import errno
+ from xcp import logger
+ from xcp.net.biosdevname import all_devices_all_names
+-from socket import inet_ntoa
+ from struct import pack
+ 
+ class NIC:
 @@ -92,7 +92,7 @@ def writeResolverFile(configuration, filename):
-
+ 
      for iface in configuration:
          settings = configuration[iface]
 -        if settings.isStatic() and settings.dns:
@@ -237,74 +246,135 @@ index 898fe0ea..e570baf7 100644
 +
 +    inet6s = filter(lambda x: x.startswith("    inet6 "), out.split("\n"))
 +    return len(inet6s) > 1  # Not just the fe80:: address
-
+ 
  # work out if a link is up:
  def linkUp(interface):
-@@ -226,15 +230,9 @@ def valid_vlan(vlan):
+@@ -225,16 +229,21 @@ def valid_vlan(vlan):
+         return False
      return True
-
- def valid_ip_addr(addr):
+ 
+-def valid_ip_addr(addr):
 -    if not re.match('^\d+\.\d+\.\d+\.\d+$', addr):
 -        return False
 -    els = addr.split('.')
 -    if len(els) != 4:
--        return False
++def valid_ip_address_family(addr, family):
++    try:
++        socket.inet_pton(family, addr)
++        return True
++    except socket.error:
+         return False
 -    for el in els:
 -        if int(el) > 255:
 -            return False
 -    return True
-+    ipv4_re = '^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)(\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)){3}'
-+    ipv6_re = '^(([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|:((:[0-9a-fA-F]{1,4}){1,7}|:)|fe80:(:[0-9a-fA-F]{0,4}){0,4}%[0-9a-zA-Z]{1,}|::(ffff(:0{1,4}){0,1}:){0,1}((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])|([0-9a-fA-F]{1,4}:){1,4}:((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9]))'
-+    return re.match(ipv4_re, addr) or re.match(ipv6_re, addr)
-
++
++def valid_ipv4_addr(addr):
++    return valid_ip_address_family(addr, socket.AF_INET)
++
++def valid_ipv6_addr(addr):
++    return valid_ip_address_family(addr, socket.AF_INET6)
++
++def valid_ip_addr(addr):
++    return valid_ipv4_addr(addr) or valid_ipv6_addr(addr)
+ 
  def network(ipaddr, netmask):
      ip = map(int,ipaddr.split('.',3))
-diff --git a/tui/installer/screens.py b/tui/installer/screens.py
-index 74bb8cfb..ea9cebaf 100644
---- a/tui/installer/screens.py
-+++ b/tui/installer/screens.py
-@@ -805,7 +805,8 @@ def ns_callback((enabled, )):
+@@ -246,7 +255,7 @@ def prefix2netmask(mask):
+     bits = 0
+     for i in xrange(32-mask, 32):
+         bits |= (1 << i)
+-    return inet_ntoa(pack('>I', bits))
++    return socket.inet_ntoa(pack('>I', bits))
+ 
+ class NetDevices:
+     def __init__(self):
+diff --git i/tui/installer/screens.py w/tui/installer/screens.py
+index d6168ba..4270b5c 100644
+--- i/tui/installer/screens.py
++++ w/tui/installer/screens.py
+@@ -888,7 +888,8 @@ def get_name_service_configuration(answers):
          for entry in [ns1_entry, ns2_entry, ns3_entry]:
              entry.setFlags(FLAG_DISABLED, enabled)
-
+ 
 -    hide_rb = answers['net-admin-configuration'].isStatic()
 +    admin_config = answers['net-admin-configuration']
 +    hide_rb = admin_config.valid() and not admin_config.isDHCP()
-
+ 
      # HOSTNAME:
      hn_title = Textbox(len("Hostname Configuration"), 1, "Hostname Configuration")
-@@ -935,7 +936,7 @@ def nsvalue(answers, id):
+@@ -1018,8 +1019,9 @@ def get_name_service_configuration(answers):
                  answers['manual-nameservers'][1].append(ns2_entry.value())
                  if ns3_entry.value() != '':
                      answers['manual-nameservers'][1].append(ns3_entry.value())
 -            if 'net-admin-configuration' in answers and answers['net-admin-configuration'].isStatic():
-+            if 'net-admin-configuration' in answers and answers['net-admin-configuration'].valid() and not answers['net-admin-configuration'].isDHCP():
-                 answers['net-admin-configuration'].dns = answers['manual-nameservers'][1]
+-                answers['net-admin-configuration'].dns = answers['manual-nameservers'][1]
++            admin_config = answers.get('net-admin-configuration')
++            if admin_config is not None and admin_config.valid() and not admin_config.isDHCP():
++                admin_config.dns = answers['manual-nameservers'][1]
          else:
              answers['manual-nameservers'] = (False, None)
-@@ -1036,7 +1037,8 @@ def dhcp_change():
+ 
+@@ -1119,7 +1121,8 @@ def get_ntp_servers(answers):
          for x in [ ntp1_field, ntp2_field, ntp3_field ]:
              x.setFlags(FLAG_DISABLED, not dhcp_cb.value())
-
+ 
 -    hide_cb = answers['net-admin-configuration'].isStatic()
 +    admin_config = answers['net-admin-configuration']
 +    hide_cb = admin_config.valid() and not admin_config.isDHCP()
-
+ 
      gf = GridFormHelp(tui.screen, 'NTP Configuration', 'ntpconf', 1, 4)
      text = TextboxReflowed(60, "Please specify details of the NTP servers you wish to use (e.g. pool.ntp.org)?")
-diff --git a/tui/network.py b/tui/network.py
-index faf87dc9..9e600eab 100644
---- a/tui/network.py
-+++ b/tui/network.py
-@@ -9,128 +9,326 @@
+diff --git i/tui/network.py w/tui/network.py
+index faf87dc..aac946d 100644
+--- i/tui/network.py
++++ w/tui/network.py
+@@ -9,128 +9,215 @@ import netutil
  from netinterface import *
  import version
  import os
 +import time
-
+ 
  from snack import *
-
+ 
  def get_iface_configuration(nic, txt=None, defaults=None, include_dns=False):
+-
+-    def use_vlan_cb_change():
+-        vlan_field.setFlags(FLAG_DISABLED, vlan_cb.value())
+-
+-    def dhcp_change():
+-        for x in [ ip_field, gateway_field, subnet_field, dns_field ]:
+-            x.setFlags(FLAG_DISABLED, not dhcp_rb.selected())
+-
+-    gf = GridFormHelp(tui.screen, 'Networking', 'ifconfig', 1, 8)
+-    if txt is None:
+-        txt = "Configuration for %s (%s)" % (nic.name, nic.hwaddr)
+-    text = TextboxReflowed(45, txt)
+-    b = [("Ok", "ok"), ("Back", "back")]
+-    buttons = ButtonBar(tui.screen, b)
+-
+-    ip_field = Entry(16)
+-    subnet_field = Entry(16)
+-    gateway_field = Entry(16)
+-    dns_field = Entry(16)
+-    vlan_field = Entry(16)
+-
+-    if defaults and defaults.isStatic():
+-        # static configuration defined previously
+-        dhcp_rb = SingleRadioButton("Automatic configuration (DHCP)", None, 0)
+-        dhcp_rb.setCallback(dhcp_change, ())
+-        static_rb = SingleRadioButton("Static configuration:", dhcp_rb, 1)
+-        static_rb.setCallback(dhcp_change, ())
+-        if defaults.ipaddr:
+-            ip_field.set(defaults.ipaddr)
+-        if defaults.netmask:
+-            subnet_field.set(defaults.netmask)
+-        if defaults.gateway:
+-            gateway_field.set(defaults.gateway)
+-        if defaults.dns:
+-            dns_field.set(defaults.dns[0])
+-    else:
+-        dhcp_rb = SingleRadioButton("Automatic configuration (DHCP)", None, 1)
 +    def choose_primary_address_type(nic):
 +        gf = GridFormHelp(tui.screen, 'Networking', 'Address type', 1, 8)
 +        txt = "Choose an address type for %s (%s)" % (nic.name, nic.hwaddr)
@@ -346,13 +416,15 @@ index faf87dc9..9e600eab 100644
 +        tui.screen.popWindow()
 +        return direction, address_type
 +
-+    def get_ipv4_configuration(nic, txt, defaults, include_dns):
++    def get_ip_configuration(nic, txt, defaults, include_dns, iface_class):
 +        def use_vlan_cb_change():
 +            vlan_field.setFlags(FLAG_DISABLED, vlan_cb.value())
 +
 +        def dhcp_change():
 +            for x in [ ip_field, gateway_field, subnet_field, dns_field ]:
-+                x.setFlags(FLAG_DISABLED, not dhcp_rb.selected())
++                x.setFlags(FLAG_DISABLED, static_rb.selected())
++
++        ipv6 = iface_class == NetInterfaceV6
 +
 +        gf = GridFormHelp(tui.screen, 'Networking', 'ifconfig', 1, 8)
 +        if txt is None:
@@ -361,137 +433,19 @@ index faf87dc9..9e600eab 100644
 +        b = [("Ok", "ok"), ("Back", "back")]
 +        buttons = ButtonBar(tui.screen, b)
 +
++        #TODO? Change size for IPv6? If so which size?
 +        ip_field = Entry(16)
 +        subnet_field = Entry(16)
 +        gateway_field = Entry(16)
 +        dns_field = Entry(16)
 +        vlan_field = Entry(16)
 +
-+        if defaults and defaults.mode == NetInterface.Static:
-+            # static configuration defined previously
-+            dhcp_rb = SingleRadioButton("Automatic configuration (DHCP)", None, 0)
-+            dhcp_rb.setCallback(dhcp_change, ())
-+            static_rb = SingleRadioButton("Static configuration:", dhcp_rb, 1)
-+            static_rb.setCallback(dhcp_change, ())
-+            if defaults.ipaddr:
-+                ip_field.set(defaults.ipaddr)
-+            if defaults.netmask:
-+                subnet_field.set(defaults.netmask)
-+            if defaults.gateway:
-+                gateway_field.set(defaults.gateway)
-+            if defaults.dns:
-+                dns_field.set(defaults.dns[0])
-+        else:
-+            dhcp_rb = SingleRadioButton("Automatic configuration (DHCP)", None, 1)
-+            dhcp_rb.setCallback(dhcp_change, ())
-+            static_rb = SingleRadioButton("Static configuration:", dhcp_rb, 0)
-+            static_rb.setCallback(dhcp_change, ())
-+            ip_field.setFlags(FLAG_DISABLED, False)
-+            subnet_field.setFlags(FLAG_DISABLED, False)
-+            gateway_field.setFlags(FLAG_DISABLED, False)
-+            dns_field.setFlags(FLAG_DISABLED, False)
-+
-+        vlan_cb = Checkbox("Use VLAN:", defaults.isVlan() if defaults else False)
-+        vlan_cb.setCallback(use_vlan_cb_change, ())
-+        if defaults and defaults.isVlan():
-+            vlan_field.set(str(defaults.vlan))
-+        else:
-+            vlan_field.setFlags(FLAG_DISABLED, False)
-+
-+        ip_text = Textbox(15, 1, "IP Address:")
-+        subnet_text = Textbox(15, 1, "Subnet mask:")
-+        gateway_text = Textbox(15, 1, "Gateway:")
-+        dns_text = Textbox(15, 1, "Nameserver:")
-+        vlan_text = Textbox(15, 1, "VLAN (1-4094):")
-+
-+        entry_grid = Grid(2, include_dns and 4 or 3)
-+        entry_grid.setField(ip_text, 0, 0)
-+        entry_grid.setField(ip_field, 1, 0)
-+        entry_grid.setField(subnet_text, 0, 1)
-+        entry_grid.setField(subnet_field, 1, 1)
-+        entry_grid.setField(gateway_text, 0, 2)
-+        entry_grid.setField(gateway_field, 1, 2)
-+        if include_dns:
-+            entry_grid.setField(dns_text, 0, 3)
-+            entry_grid.setField(dns_field, 1, 3)
-+
-+        vlan_grid =  Grid(2, 1)
-+        vlan_grid.setField(vlan_text, 0, 0)
-+        vlan_grid.setField(vlan_field, 1, 0)
-+
-+        gf.add(text, 0, 0, padding=(0, 0, 0, 1))
-+        gf.add(dhcp_rb, 0, 2, anchorLeft=True)
-+        gf.add(static_rb, 0, 3, anchorLeft=True)
-+        gf.add(entry_grid, 0, 4, padding=(0, 0, 0, 1))
-+        gf.add(vlan_cb, 0, 5, anchorLeft=True)
-+        gf.add(vlan_grid, 0, 6, padding=(0, 0, 0, 1))
-+        gf.add(buttons, 0, 7, growx=1)
-+
-+        loop = True
-+        while loop:
-+            result = gf.run()
-+
-+            if buttons.buttonPressed(result) in ['ok', None]:
-+                # validate input
-+                msg = ''
-+                if static_rb.selected():
-+                    if not netutil.valid_ip_addr(ip_field.value()):
-+                        msg = 'IP Address'
-+                    elif not netutil.valid_ip_addr(subnet_field.value()):
-+                        msg = 'Subnet mask'
-+                    elif gateway_field.value() != '' and not netutil.valid_ip_addr(gateway_field.value()):
-+                        msg = 'Gateway'
-+                    elif dns_field.value() != '' and not netutil.valid_ip_addr(dns_field.value()):
-+                        msg = 'Nameserver'
-+                if vlan_cb.selected():
-+                    if not netutil.valid_vlan(vlan_field.value()):
-+                        msg = 'VLAN'
-+                if msg != '':
-+                    tui.progress.OKDialog("Networking", "Invalid %s, please check the field and try again." % msg)
-+                else:
-+                    loop = False
-+            else:
-+                loop = False
-
--    def use_vlan_cb_change():
--        vlan_field.setFlags(FLAG_DISABLED, vlan_cb.value())
--
--    def dhcp_change():
--        for x in [ ip_field, gateway_field, subnet_field, dns_field ]:
--            x.setFlags(FLAG_DISABLED, not dhcp_rb.selected())
--
--    gf = GridFormHelp(tui.screen, 'Networking', 'ifconfig', 1, 8)
--    if txt is None:
--        txt = "Configuration for %s (%s)" % (nic.name, nic.hwaddr)
--    text = TextboxReflowed(45, txt)
--    b = [("Ok", "ok"), ("Back", "back")]
--    buttons = ButtonBar(tui.screen, b)
--
--    ip_field = Entry(16)
--    subnet_field = Entry(16)
--    gateway_field = Entry(16)
--    dns_field = Entry(16)
--    vlan_field = Entry(16)
--
--    if defaults and defaults.isStatic():
--        # static configuration defined previously
--        dhcp_rb = SingleRadioButton("Automatic configuration (DHCP)", None, 0)
--        dhcp_rb.setCallback(dhcp_change, ())
--        static_rb = SingleRadioButton("Static configuration:", dhcp_rb, 1)
--        static_rb.setCallback(dhcp_change, ())
--        if defaults.ipaddr:
--            ip_field.set(defaults.ipaddr)
--        if defaults.netmask:
--            subnet_field.set(defaults.netmask)
--        if defaults.gateway:
--            gateway_field.set(defaults.gateway)
--        if defaults.dns:
--            dns_field.set(defaults.dns[0])
--    else:
--        dhcp_rb = SingleRadioButton("Automatic configuration (DHCP)", None, 1)
--        dhcp_rb.setCallback(dhcp_change, ())
++        static = defaults and (defaults.modev6 if ipv6 else defaults.mode) == NetInterface.Static
++        dhcp_rb = SingleRadioButton("Automatic configuration (DHCP)", None, not static)
+         dhcp_rb.setCallback(dhcp_change, ())
 -        static_rb = SingleRadioButton("Static configuration:", dhcp_rb, 0)
--        static_rb.setCallback(dhcp_change, ())
++        static_rb = SingleRadioButton("Static configuration:", dhcp_rb, static)
+         static_rb.setCallback(dhcp_change, ())
 -        ip_field.setFlags(FLAG_DISABLED, False)
 -        subnet_field.setFlags(FLAG_DISABLED, False)
 -        gateway_field.setFlags(FLAG_DISABLED, False)
@@ -554,68 +508,29 @@ index faf87dc9..9e600eab 100644
 -                    msg = 'VLAN'
 -            if msg != '':
 -                tui.progress.OKDialog("Networking", "Invalid %s, please check the field and try again." % msg)
-+        tui.screen.popWindow()
-+
-+        if buttons.buttonPressed(result) == 'back': return LEFT_BACKWARDS, None
-+
-+        vlan_value = int(vlan_field.value()) if vlan_cb.selected() else None
-+        if bool(dhcp_rb.selected()):
-+            answers = NetInterface(NetInterface.DHCP, nic.hwaddr, vlan=vlan_value)
-+        else:
-+            answers = NetInterface(NetInterface.Static, nic.hwaddr, ip_field.value(),
-+                                subnet_field.value(), gateway_field.value(),
-+                                dns_field.value(), vlan=vlan_value)
-+        return RIGHT_FORWARDS, answers
-+
-+    def get_ipv6_configuration(nic, txt, defaults, include_dns):
-+        def dhcp_change():
-+            for x in [ ip_field, gateway_field, subnet_field, dns_field ]:
-+                x.setFlags(FLAG_DISABLED, static_rb.selected())
-+
-+        def use_vlan_cb_change():
-+            vlan_field.setFlags(FLAG_DISABLED, vlan_cb.value())
-+
-+        gf = GridFormHelp(tui.screen, 'Networking', 'ifconfigv6', 1, 10)
-+        if txt is None:
-+            txt = "Configuration for %s (%s)" % (nic.name, nic.hwaddr)
-+        text = TextboxReflowed(45, txt)
-+        b = [("Ok", "ok"), ("Back", "back")]
-+        buttons = ButtonBar(tui.screen, b)
-+
-+        ip_field = Entry(25)
-+        subnet_field = Entry(25)
-+        gateway_field = Entry(25)
-+        dns_field = Entry(25)
-+        vlan_field = Entry(25)
-+
-+        if defaults and defaults.modev6 == NetInterface.Static:
-+            # static configuration defined previously
-+            dhcp_rb = SingleRadioButton("Automatic configuration (DHCP)", None, 0)
-+            dhcp_rb.setCallback(dhcp_change, ())
-+            autoconf_rb = SingleRadioButton("Automatic configuration (Autoconf)", dhcp_rb, 0)
++        if ipv6:
++            autoconf_rb = SingleRadioButton("Automatic configuration (Autoconf)", autoconf_rb, 0)
 +            autoconf_rb.setCallback(dhcp_change, ())
-+            static_rb = SingleRadioButton("Static configuration:", autoconf_rb, 1)
-+            static_rb.setCallback(dhcp_change, ())
-+            if defaults:
++        dhcp_change()
++
++        if defaults:
++            if ipv6:
 +                if defaults.ipv6addr:
 +                    ip6addr, netmask = defaults.ipv6addr.split("/")
 +                    ip_field.set(ip6addr)
 +                    subnet_field.set(netmask)
 +                if defaults.ipv6_gateway:
 +                    gateway_field.set(defaults.ipv6_gateway)
-+                if defaults.dns:
-+                    dns_field.set(defaults.dns[0])
-+        else:
-+            dhcp_rb = SingleRadioButton("Automatic configuration (DHCP)", None, 1)
-+            dhcp_rb.setCallback(dhcp_change, ())
-+            autoconf_rb = SingleRadioButton("Automatic configuration (Autoconf)", dhcp_rb, 0)
-+            autoconf_rb.setCallback(dhcp_change, ())
-+            static_rb = SingleRadioButton("Static configuration:", autoconf_rb, 0)
-+            static_rb.setCallback(dhcp_change, ())
-+            ip_field.setFlags(FLAG_DISABLED, False)
-+            subnet_field.setFlags(FLAG_DISABLED, False)
-+            gateway_field.setFlags(FLAG_DISABLED, False)
-+            dns_field.setFlags(FLAG_DISABLED, False)
++            else:
++                if defaults.ipaddr:
++                    ip_field.set(defaults.ipaddr)
++                if defaults.netmask:
++                    subnet_field.set(defaults.netmask)
++                if defaults.gateway:
++                    gateway_field.set(defaults.gateway)
++
++            if defaults.dns:
++                dns_field.set(defaults.dns[0])
 +
 +        vlan_cb = Checkbox("Use VLAN:", defaults.isVlan() if defaults else False)
 +        vlan_cb.setCallback(use_vlan_cb_change, ())
@@ -624,8 +539,10 @@ index faf87dc9..9e600eab 100644
 +        else:
 +            vlan_field.setFlags(FLAG_DISABLED, False)
 +
-+        ip_text = Textbox(15, 1, "IPv6 Address:")
-+        subnet_text = Textbox(15, 1, "CIDR (4-128):")
++        ip_msg = "IPv6 Address" if ipv6 else "IP Address"
++        mask_msg = "CIDR (4-128)" if ipv6 else "Subnet mask"
++        ip_text = Textbox(15, 1, "%s:" % ip_msg)
++        subnet_text = Textbox(15, 1, "%s:" % mask_msg)
 +        gateway_text = Textbox(15, 1, "Gateway:")
 +        dns_text = Textbox(15, 1, "Nameserver:")
 +        vlan_text = Textbox(15, 1, "VLAN (1-4094):")
@@ -647,14 +564,17 @@ index faf87dc9..9e600eab 100644
 +
 +        gf.add(text, 0, 0, padding=(0, 0, 0, 1))
 +        gf.add(dhcp_rb, 0, 2, anchorLeft=True)
-+        gf.add(autoconf_rb, 0, 3, anchorLeft=True)
-+        gf.add(static_rb, 0, 4, anchorLeft=True)
-+        gf.add(entry_grid, 0, 5, padding=(0, 0, 0, 1))
-+        gf.add(vlan_cb, 0, 6, anchorLeft=True)
-+        gf.add(vlan_grid, 0, 7, padding=(0, 0, 0, 1))
-+        gf.add(buttons, 0, 8, growx=1)
++        gf.add(static_rb, 0, 3, anchorLeft=True)
++        if ipv6:
++            gf.add(autoconf_rb, 0, 4, anchorLeft=True)
++        # One more line for IPv6 autoconf
++        gf.add(entry_grid, 0, 4 + ipv6, padding=(0, 0, 0, 1))
++        gf.add(vlan_cb, 0, 5 + ipv6, anchorLeft=True)
++        gf.add(vlan_grid, 0, 6 + ipv6, padding=(0, 0, 0, 1))
++        gf.add(buttons, 0, 7 + ipv6, growx=1)
 +
 +        loop = True
++        ip_family = socket.AF_INET6 if ipv6 else socket.AF_INET
 +        while loop:
 +            result = gf.run()
 +
@@ -663,13 +583,14 @@ index faf87dc9..9e600eab 100644
 +                msg = ''
 +                if static_rb.selected():
 +                    subnet_value = int(subnet_field.value())
-+                    if not netutil.valid_ip_addr(ip_field.value()):
-+                        msg = 'IPv6 Address'
-+                    elif subnet_value > 128 or subnet_value < 4:
-+                        msg = 'CIDR'
-+                    elif gateway_field.value() != '' and not netutil.valid_ip_addr(gateway_field.value()):
++                    invalid_subnet = subnet_value > 128 or subnet_value < 4 if ipv6 else not netutil.valid_ipv4_addr(subnet_field.value())
++                    if not netutil.valid_ip_address_family(ip_field.value(), ip_family):
++                        msg = ip_msg
++                    elif invalid_subnet:
++                        msg = mask_msg
++                    elif gateway_field.value() != '' and not netutil.valid_ip_address_family(gateway_field.value(), ip_family):
 +                        msg = 'Gateway'
-+                    elif dns_field.value() != '' and not netutil.valid_ip_addr(dns_field.value()):
++                    elif dns_field.value() != '' and not netutil.valid_ip_address_family(dns_field.value(), ip_family):
 +                        msg = 'Nameserver'
 +                if vlan_cb.selected():
 +                    if not netutil.valid_vlan(vlan_field.value()):
@@ -687,18 +608,18 @@ index faf87dc9..9e600eab 100644
 +
 +        vlan_value = int(vlan_field.value()) if vlan_cb.selected() else None
 +        if bool(dhcp_rb.selected()):
-+            answers = NetInterface(NetInterface.DHCP, nic.hwaddr, vlan=vlan_value, ipv6=True)
-+        elif bool(autoconf_rb.selected()):
-+            answers = NetInterface(NetInterface.Autoconf, nic.hwaddr, vlan=vlan_value, ipv6=True)
++            answers = iface_class(NetInterface.DHCP, nic.hwaddr, vlan=vlan_value)
++        elif ipv6 and bool(autoconf_rb.selected()):
++            answers = iface_class(NetInterface.Autoconf, nic.hwaddr, vlan=vlan_value)
          else:
 -            loop = False
-+            answers = NetInterface(NetInterface.Static, nic.hwaddr, ip_field.value(),
++            answers = iface_class(NetInterface.Static, nic.hwaddr, ip_field.value(),
 +                            subnet_field.value(), gateway_field.value(),
-+                            dns_field.value(), vlan=vlan_value, ipv6=True)
-
++                            dns_field.value(), vlan=vlan_value)
+ 
 -    tui.screen.popWindow()
 +        return RIGHT_FORWARDS, answers
-
+ 
 -    if buttons.buttonPressed(result) == 'back': return LEFT_BACKWARDS, None
 +    direction, address_type = choose_primary_address_type(nic)
 +    if direction == LEFT_BACKWARDS:
@@ -706,12 +627,12 @@ index faf87dc9..9e600eab 100644
 +
 +    answers = None
 +    if address_type in ["ipv4", "dual"]:
-+        direction, answers = get_ipv4_configuration(nic, txt, defaults, include_dns)
++        direction, answers = get_ip_configuration(nic, txt, defaults, include_dns, NetInterface)
 +        if direction == LEFT_BACKWARDS:
 +            return LEFT_BACKWARDS, None
 +
 +    if address_type in ["ipv6", "dual"]:
-+        direction, answers_ipv6 = get_ipv6_configuration(nic, txt, defaults, include_dns)
++        direction, answers_ipv6 = get_ip_configuration(nic, txt, defaults, include_dns, NetInterfaceV6)
 +        if direction == LEFT_BACKWARDS:
 +            return LEFT_BACKWARDS, None
 +
@@ -723,7 +644,7 @@ index faf87dc9..9e600eab 100644
 +            answers.ipv6_gateway = answers_ipv6.ipv6_gateway
 +            if answers_ipv6.dns != None:
 +                answers.dns = answers_ipv6.dns if answers.dns == None else answers.dns + "," + answers_ipv6.dns
-
+ 
 -    vlan_value = int(vlan_field.value()) if vlan_cb.selected() else None
 -    if bool(dhcp_rb.selected()):
 -        answers = NetInterface(NetInterface.DHCP, nic.hwaddr, vlan=vlan_value)
@@ -732,314 +653,14 @@ index faf87dc9..9e600eab 100644
 -                               subnet_field.value(), gateway_field.value(),
 -                               dns_field.value(), vlan=vlan_value)
      return RIGHT_FORWARDS, answers
-
+ 
  def select_netif(text, conf, offer_existing=False, default=None):
-@@ -285,9 +483,12 @@ def specify_configuration(answers, txt, defaults):
-             )
+@@ -286,23 +373,37 @@ def requireNetworking(answers, defaults=None, msg=None, keys=['net-admin-interfa
          ifaceName = conf_dict['config'].getInterfaceName(conf_dict['interface'])
          netutil.ifdown(ifaceName)
-+        ifup_error = netutil.ifup(ifaceName) != 0
-+        if conf_dict['config'].modev6 == NetInterface.Autoconf:
-+            time.sleep(2)
-
-         # check that we have *some* network:
--        if netutil.ifup(ifaceName) != 0 or not netutil.interfaceUp(ifaceName):
-+        if ifup_error or not netutil.interfaceUp(ifaceName):
-             tui.progress.clearModelessDialog()
-             tui.progress.OKDialog("Networking", "The network still does not appear to be active.  Please check your settings, and try again.")
-             direction = REPEAT_STEP
-diff --git a/upgrade.py b/upgrade.py
-index ec8d9104..44d78859 100644
---- a/upgrade.py
-+++ b/upgrade.py
-@@ -474,6 +474,12 @@ def completeUpgrade(self, mounts, prev_install, target_disk, backup_partnum, log
-             nfd.write("NETWORKING_IPV6=no\n")
-             nfd.close()
-             netutil.disable_ipv6_module(mounts["root"])
-+        else:
-+            # Enable IPV6
-+            ipv6_conf = open("%s/etc/sysctl.d/91-net-ipv6.conf" % mounts["root"], "w")
-+            for i in ['all', 'default']:
-+                ipv6_conf.write('net.ipv6.conf.%s.disable_ipv6=0\n' % i)
-+            ipv6_conf.close()
-
-         # handle the conversion of devices from aacraid to smartpqi
-         primary_disk = self.source.getInventoryValue("PRIMARY_DISK")
-
-From 018e7998fe695709f36c140f9245b04944513e31 Mon Sep 17 00:00:00 2001
-From: BenjiReis <benjamin.reis@vates.fr>
-Date: Mon, 7 Nov 2022 13:49:38 +0100
-Subject: [PATCH 2/8] adapt to pr comments
-
-Signed-off-by: BenjiReis <benjamin.reis@vates.fr>
----
- backend.py | 23 +++++++++++------------
- upgrade.py |  7 +++----
- 2 files changed, 14 insertions(+), 16 deletions(-)
-
-diff --git a/backend.py b/backend.py
-index 0ff1e8f4..eaab7f4d 100644
---- a/backend.py
-+++ b/backend.py
-@@ -1554,18 +1554,17 @@ def configureNetworking(mounts, admin_iface, admin_bridge, admin_config, hn_conf
-     # now we need to write /etc/sysconfig/network
-     nfd = open("%s/etc/sysconfig/network" % mounts["root"], "w")
-     nfd.write("NETWORKING=yes\n")
--    ipv6_conf = open("%s/etc/sysctl.d/91-net-ipv6.conf" % mounts["root"], "w")
--    if admin_config.modev6:
--        nfd.write("NETWORKING_IPV6=yes\n")
--        util.runCmd2(['chroot', mounts['root'], 'systemctl', 'enable', 'ip6tables'])
--        for i in ['all', 'default']:
--            ipv6_conf.write('net.ipv6.conf.%s.disable_ipv6=0\n' % i)
--    else:
--        nfd.write("NETWORKING_IPV6=no\n")
--        for i in ['all', 'default']:
--            ipv6_conf.write('net.ipv6.conf.%s.disable_ipv6=1\n' % i)
--        netutil.disable_ipv6_module(mounts["root"])
--    ipv6_conf.close()
-+    with open("%s/etc/sysctl.d/91-net-ipv6.conf" % mounts["root"], "w") as ipv6_conf:
-+        if admin_config.modev6:
-+            nfd.write("NETWORKING_IPV6=yes\n")
-+            util.runCmd2(['chroot', mounts['root'], 'systemctl', 'enable', 'ip6tables'])
-+            for i in ['all', 'default']:
-+                ipv6_conf.write('net.ipv6.conf.%s.disable_ipv6=0\n' % i)
-+        else:
-+            nfd.write("NETWORKING_IPV6=no\n")
-+            for i in ['all', 'default']:
-+                ipv6_conf.write('net.ipv6.conf.%s.disable_ipv6=1\n' % i)
-+            netutil.disable_ipv6_module(mounts["root"])
-     nfd.write("IPV6_AUTOCONF=no\n")
-     nfd.write('NTPSERVERARGS="iburst prefer"\n')
-     nfd.close()
-diff --git a/upgrade.py b/upgrade.py
-index 44d78859..f2bacc6a 100644
---- a/upgrade.py
-+++ b/upgrade.py
-@@ -476,10 +476,9 @@ def completeUpgrade(self, mounts, prev_install, target_disk, backup_partnum, log
-             netutil.disable_ipv6_module(mounts["root"])
-         else:
-             # Enable IPV6
--            ipv6_conf = open("%s/etc/sysctl.d/91-net-ipv6.conf" % mounts["root"], "w")
--            for i in ['all', 'default']:
--                ipv6_conf.write('net.ipv6.conf.%s.disable_ipv6=0\n' % i)
--            ipv6_conf.close()
-+            with open("%s/etc/sysctl.d/91-net-ipv6.conf" % mounts["root"], "w") as ipv6_conf:
-+                for i in ['all', 'default']:
-+                    ipv6_conf.write('net.ipv6.conf.%s.disable_ipv6=0\n' % i)
-
-         # handle the conversion of devices from aacraid to smartpqi
-         primary_disk = self.source.getInventoryValue("PRIMARY_DISK")
-
-From a5f88b822de07a39af25491b6976b92daff6d917 Mon Sep 17 00:00:00 2001
-From: BenjiReis <benjamin.reis@vates.fr>
-Date: Tue, 20 Dec 2022 11:36:19 +0100
-Subject: [PATCH 3/8] rebase me: PR comments
-
----
- backend.py     |  7 +++----
- netutil.py     | 21 ++++++++++++++++++---
- tui/network.py | 14 +++++++-------
- 3 files changed, 28 insertions(+), 14 deletions(-)
-
-diff --git a/backend.py b/backend.py
-index eaab7f4d..4a0f5a7b 100644
---- a/backend.py
-+++ b/backend.py
-@@ -1508,10 +1508,9 @@ def configureNetworking(mounts, admin_iface, admin_bridge, admin_config, hn_conf
-             print >>mc, "IPv6='%s'" % admin_config.ipv6addr
-             if admin_config.ipv6_gateway:
-                 print >>mc, "IPv6_GATEWAY='%s'" % admin_config.ipv6_gateway
--        if admin_config.valid() and not admin_config.isDHCP():
--            if manual_nameservers:
--                print >>mc, "DNS='%s'" % (','.join(nameservers),)
--            if domain:
-+        if manual_nameservers:
-+            print >>mc, "DNS='%s'" % (','.join(nameservers),)
-+        if domain:
-                 print >>mc, "DOMAIN='%s'" % domain
-         if admin_config.vlan:
-             print >>mc, "VLAN='%d'" % admin_config.vlan
-diff --git a/netutil.py b/netutil.py
-index e570baf7..ac460ce0 100644
---- a/netutil.py
-+++ b/netutil.py
-@@ -229,10 +229,25 @@ def valid_vlan(vlan):
-         return False
-     return True
-
-+def valid_ipv4_addr(addr):
-+    octet = '(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)'
-+    ipv4_re = '^' + octet + '(\.' + octet + '){3}'
-+    return re.match(ipv4_re, addr)
-+
-+def valid_ipv6_addr(addr):
-+    ipv6_char = '[0-9a-fA-F]'
-+    ipv6_elem = ipv6_char + '{1,4}'
-+    octet = '(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])'
-+    ipv6_re = '^((' + ipv6_elem + ':){7,7}' + ipv6_elem + '|(' + ipv6_elem + ':){1,7}:|(' + ipv6_elem + ':){1,6}:' + \
-+        ipv6_elem + '|(' + ipv6_elem + ':){1,5}(:' + ipv6_elem + '){1,2}|(' + ipv6_elem + ':){1,4}(:' + ipv6_elem + \
-+        '){1,3}|(' + ipv6_elem + ':){1,3}(:' + ipv6_elem + '){1,4}|(' + ipv6_elem + ':){1,2}(:' + ipv6_elem + \
-+        '){1,5}|' + ipv6_elem + ':((:' + ipv6_elem + '){1,6})|:((:' + ipv6_elem + '){1,7}|:)|fe80:(:' + ipv6_char + \
-+        '{0,4}){0,4}%[0-9a-zA-Z]{1,}|::(ffff(:0{1,4}){0,1}:){0,1}(' + octet + '\.){3,3}' + octet + '|(' + ipv6_elem + \
-+        ':){1,4}:(' + octet + '\.){3,3}' + octet + ')'
-+    return re.match(ipv6_re, addr)
-+
- def valid_ip_addr(addr):
--    ipv4_re = '^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)(\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)){3}'
--    ipv6_re = '^(([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|:((:[0-9a-fA-F]{1,4}){1,7}|:)|fe80:(:[0-9a-fA-F]{0,4}){0,4}%[0-9a-zA-Z]{1,}|::(ffff(:0{1,4}){0,1}:){0,1}((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])|([0-9a-fA-F]{1,4}:){1,4}:((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9]))'
--    return re.match(ipv4_re, addr) or re.match(ipv6_re, addr)
-+    return valid_ipv4_addr(addr) or valid_ipv6_addr(addr)
-
- def network(ipaddr, netmask):
-     ip = map(int,ipaddr.split('.',3))
-diff --git a/tui/network.py b/tui/network.py
-index 9e600eab..7ceaf648 100644
---- a/tui/network.py
-+++ b/tui/network.py
-@@ -144,13 +144,13 @@ def dhcp_change():
-                 # validate input
-                 msg = ''
-                 if static_rb.selected():
--                    if not netutil.valid_ip_addr(ip_field.value()):
-+                    if not netutil.valid_ipv4_addr(ip_field.value()):
-                         msg = 'IP Address'
--                    elif not netutil.valid_ip_addr(subnet_field.value()):
-+                    elif not netutil.valid_ipv4_addr(subnet_field.value()):
-                         msg = 'Subnet mask'
--                    elif gateway_field.value() != '' and not netutil.valid_ip_addr(gateway_field.value()):
-+                    elif gateway_field.value() != '' and not netutil.valid_ipv4_addr(gateway_field.value()):
-                         msg = 'Gateway'
--                    elif dns_field.value() != '' and not netutil.valid_ip_addr(dns_field.value()):
-+                    elif dns_field.value() != '' and not netutil.valid_ipv4_addr(dns_field.value()):
-                         msg = 'Nameserver'
-                 if vlan_cb.selected():
-                     if not netutil.valid_vlan(vlan_field.value()):
-@@ -271,13 +271,13 @@ def use_vlan_cb_change():
-                 msg = ''
-                 if static_rb.selected():
-                     subnet_value = int(subnet_field.value())
--                    if not netutil.valid_ip_addr(ip_field.value()):
-+                    if not netutil.valid_ipv6_addr(ip_field.value()):
-                         msg = 'IPv6 Address'
-                     elif subnet_value > 128 or subnet_value < 4:
-                         msg = 'CIDR'
--                    elif gateway_field.value() != '' and not netutil.valid_ip_addr(gateway_field.value()):
-+                    elif gateway_field.value() != '' and not netutil.valid_ipv6_addr(gateway_field.value()):
-                         msg = 'Gateway'
--                    elif dns_field.value() != '' and not netutil.valid_ip_addr(dns_field.value()):
-+                    elif dns_field.value() != '' and not netutil.valid_ipv6_addr(dns_field.value()):
-                         msg = 'Nameserver'
-                 if vlan_cb.selected():
-                     if not netutil.valid_vlan(vlan_field.value()):
-
-From 3ad612a48bb934894d9b6a65b200abb7d1abcc6b Mon Sep 17 00:00:00 2001
-From: BenjiReis <benjamin.reis@vates.fr>
-Date: Tue, 20 Dec 2022 11:58:05 +0100
-Subject: [PATCH 4/8] Squash me: use inet pton istead of regex to validate IP
- addresses
-
----
- netutil.py | 26 +++++++++++---------------
- 1 file changed, 11 insertions(+), 15 deletions(-)
-
-diff --git a/netutil.py b/netutil.py
-index ac460ce0..b4549127 100644
---- a/netutil.py
-+++ b/netutil.py
-@@ -4,12 +4,12 @@
- import diskutil
- import util
- import re
-+import socket
- import subprocess
- import time
- import errno
- from xcp import logger
- from xcp.net.biosdevname import all_devices_all_names
--from socket import inet_ntoa
- from struct import pack
-
- class NIC:
-@@ -229,22 +229,18 @@ def valid_vlan(vlan):
-         return False
-     return True
-
-+def valid_ip_address_family(addr, family):
-+    try:
-+        socket.inet_pton(family, addr)
-+        return True
-+    except socket.error:
-+        return False
-+
- def valid_ipv4_addr(addr):
--    octet = '(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)'
--    ipv4_re = '^' + octet + '(\.' + octet + '){3}'
--    return re.match(ipv4_re, addr)
-+    return valid_ip_address_family(addr, socket.AF_INET)
-
- def valid_ipv6_addr(addr):
--    ipv6_char = '[0-9a-fA-F]'
--    ipv6_elem = ipv6_char + '{1,4}'
--    octet = '(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])'
--    ipv6_re = '^((' + ipv6_elem + ':){7,7}' + ipv6_elem + '|(' + ipv6_elem + ':){1,7}:|(' + ipv6_elem + ':){1,6}:' + \
--        ipv6_elem + '|(' + ipv6_elem + ':){1,5}(:' + ipv6_elem + '){1,2}|(' + ipv6_elem + ':){1,4}(:' + ipv6_elem + \
--        '){1,3}|(' + ipv6_elem + ':){1,3}(:' + ipv6_elem + '){1,4}|(' + ipv6_elem + ':){1,2}(:' + ipv6_elem + \
--        '){1,5}|' + ipv6_elem + ':((:' + ipv6_elem + '){1,6})|:((:' + ipv6_elem + '){1,7}|:)|fe80:(:' + ipv6_char + \
--        '{0,4}){0,4}%[0-9a-zA-Z]{1,}|::(ffff(:0{1,4}){0,1}:){0,1}(' + octet + '\.){3,3}' + octet + '|(' + ipv6_elem + \
--        ':){1,4}:(' + octet + '\.){3,3}' + octet + ')'
--    return re.match(ipv6_re, addr)
-+    return valid_ip_address_family(addr, socket.AF_INET6)
-
- def valid_ip_addr(addr):
-     return valid_ipv4_addr(addr) or valid_ipv6_addr(addr)
-@@ -259,7 +255,7 @@ def prefix2netmask(mask):
-     bits = 0
-     for i in xrange(32-mask, 32):
-         bits |= (1 << i)
--    return inet_ntoa(pack('>I', bits))
-+    return socket.inet_ntoa(pack('>I', bits))
-
- class NetDevices:
-     def __init__(self):
-
-From 0c59843315d9eb7db1f7ff19abb39343fccd7684 Mon Sep 17 00:00:00 2001
-From: BenjiReis <benjamin.reis@vates.fr>
-Date: Tue, 20 Dec 2022 17:14:38 +0100
-Subject: [PATCH 5/8] Squash me: Use a timeout to wait for autoconf
-
----
- netinterface.py |  3 +--
- tui/network.py  | 49 ++++++++++++++++++++++++++++++-------------------
- 2 files changed, 31 insertions(+), 21 deletions(-)
-
-diff --git a/netinterface.py b/netinterface.py
-index 72276092..60970beb 100644
---- a/netinterface.py
-+++ b/netinterface.py
-@@ -37,8 +37,7 @@ def __init__(self, mode, hwaddr, ipaddr=None, netmask=None, gateway=None,
-         elif isinstance(dns, str):
-             dns = [ dns ]
-         if mode == self.Static:
--            assert ipaddr
--            assert netmask
-+            assert ipaddr and netmask
-
-         self.hwaddr = hwaddr
-         if ipv6:
-diff --git a/tui/network.py b/tui/network.py
-index 7ceaf648..f2bbf8fd 100644
---- a/tui/network.py
-+++ b/tui/network.py
-@@ -483,27 +483,38 @@ def specify_configuration(answers, txt, defaults):
-             )
-         ifaceName = conf_dict['config'].getInterfaceName(conf_dict['interface'])
-         netutil.ifdown(ifaceName)
--        ifup_error = netutil.ifup(ifaceName) != 0
--        if conf_dict['config'].modev6 == NetInterface.Autoconf:
--            time.sleep(2)
-
+ 
 -        # check that we have *some* network:
--        if ifup_error or not netutil.interfaceUp(ifaceName):
+-        if netutil.ifup(ifaceName) != 0 or not netutil.interfaceUp(ifaceName):
 +        def display_error():
              tui.progress.clearModelessDialog()
              tui.progress.OKDialog("Networking", "The network still does not appear to be active.  Please check your settings, and try again.")
@@ -1086,447 +707,21 @@ index 7ceaf648..f2bbf8fd 100644
 +            manual_config[conf_dict['interface']] = conf_dict['config']
 +            answers['runtime-iface-configuration'] = (all_dhcp, manual_config)
 +        tui.progress.clearModelessDialog()
-
+ 
      return direction
-
-From 5e8f0a207f19a15e9b0ea9a9e72e163567946369 Mon Sep 17 00:00:00 2001
-From: BenjiReis <benjamin.reis@vates.fr>
-Date: Wed, 21 Dec 2022 10:01:44 +0100
-Subject: [PATCH 6/8] Squash me: simplify code
-
----
- tui/installer/screens.py | 5 +++--
- 1 file changed, 3 insertions(+), 2 deletions(-)
-
-diff --git a/tui/installer/screens.py b/tui/installer/screens.py
-index ea9cebaf..3400aff7 100644
---- a/tui/installer/screens.py
-+++ b/tui/installer/screens.py
-@@ -936,8 +936,9 @@ def nsvalue(answers, id):
-                 answers['manual-nameservers'][1].append(ns2_entry.value())
-                 if ns3_entry.value() != '':
-                     answers['manual-nameservers'][1].append(ns3_entry.value())
--            if 'net-admin-configuration' in answers and answers['net-admin-configuration'].valid() and not answers['net-admin-configuration'].isDHCP():
--                answers['net-admin-configuration'].dns = answers['manual-nameservers'][1]
-+            admin_config = answers.get('net-admin-configuration')
-+            if admin_config is not None and admin_config.valid() and not admin_config.isDHCP():
-+                admin_config.dns = answers['manual-nameservers'][1]
-         else:
-             answers['manual-nameservers'] = (False, None)
-
-
-From f918130ec18199c4153fbcbfb2a44be5aca65690 Mon Sep 17 00:00:00 2001
-From: BenjiReis <benjamin.reis@vates.fr>
-Date: Fri, 3 Mar 2023 11:52:06 +0100
-Subject: [PATCH 7/8] rebase me: refactor NetInterface creation
-
-Create a specific class to init IPv6 NetInterface
-
-Signed-off-by: BenjiReis <benjamin.reis@vates.fr>
----
- netinterface.py | 46 +++++++++++++++++++++++++---------------------
- tui/network.py  |  8 ++++----
- 2 files changed, 29 insertions(+), 25 deletions(-)
-
-diff --git a/netinterface.py b/netinterface.py
-index 60970beb..e3e8709b 100644
---- a/netinterface.py
-+++ b/netinterface.py
-@@ -24,7 +24,7 @@ class NetInterface:
-     Autoconf = 3
-
-     def __init__(self, mode, hwaddr, ipaddr=None, netmask=None, gateway=None,
--                 dns=None, domain=None, vlan=None, ipv6=False):
-+                 dns=None, domain=None, vlan=None):
-         assert mode in [None, self.Static, self.DHCP, self.Autoconf]
-         if ipaddr == '':
-             ipaddr = None
-@@ -36,31 +36,23 @@ def __init__(self, mode, hwaddr, ipaddr=None, netmask=None, gateway=None,
-             dns = None
-         elif isinstance(dns, str):
-             dns = [ dns ]
--        if mode == self.Static:
-+        is_static = mode == self.Static
-+        if is_static:
-             assert ipaddr and netmask
-
-         self.hwaddr = hwaddr
--        if ipv6:
--            self.mode = None
--            self.ipaddr = None
--            self.netmask = None
--            self.gateway = None
--
--            self.modev6 = mode
--            self.ipv6addr = ipaddr + "/" + netmask if mode == self.Static else None
--            self.ipv6_gateway = gateway if mode == self.Static else None
--        else:
--            self.modev6 = None
--            self.ipv6addr = None
--            self.ipv6_gateway = None
-
--            self.mode = mode
--            self.ipaddr = ipaddr if mode == self.Static else None
--            self.netmask = netmask if mode == self.Static else None
--            self.gateway = gateway if mode == self.Static else None
-+        self.modev6 = None
-+        self.ipv6addr = None
-+        self.ipv6_gateway = None
-
--        self.dns = dns if mode == self.Static else None
--        self.domain = domain if mode == self.Static else None
-+        self.mode = mode
-+        self.ipaddr = ipaddr if is_static else None
-+        self.netmask = netmask if is_static else None
-+        self.gateway = gateway if is_static else None
-+
-+        self.dns = dns if is_static else None
-+        self.domain = domain if is_static else None
-         self.vlan = vlan
-
-     def __repr__(self):
-@@ -377,3 +369,15 @@ def loadFromNetDb(jdata, hwaddr):
-
-         nic.addIPv6(modev6, ipv6addr, gatewayv6)
-         return nic
-+
-+class NetInterfaceV6(NetInterface):
-+    def __init__(self, mode, hwaddr, ipaddr=None, netmask=None, gateway=None, dns=None, domain=None, vlan=None):
-+        super().__init__(None, hwaddr, None, None, None, dns, domain, vlan)
-+
-+        is_static = mode == self.Static
-+        ipv6addr = None
-+        if is_static:
-+            assert ipaddr and netmask
-+            ipv6addr = ipaddr + "/" + netmask
-+
-+        self.addIPv6(mode, ipv6addr=ipv6addr, ipv6gw=gateway)
-diff --git a/tui/network.py b/tui/network.py
-index f2bbf8fd..fa349378 100644
---- a/tui/network.py
-+++ b/tui/network.py
-@@ -295,13 +295,13 @@ def use_vlan_cb_change():
-
-         vlan_value = int(vlan_field.value()) if vlan_cb.selected() else None
-         if bool(dhcp_rb.selected()):
--            answers = NetInterface(NetInterface.DHCP, nic.hwaddr, vlan=vlan_value, ipv6=True)
-+            answers = NetInterfaceV6(NetInterface.DHCP, nic.hwaddr, vlan=vlan_value)
-         elif bool(autoconf_rb.selected()):
--            answers = NetInterface(NetInterface.Autoconf, nic.hwaddr, vlan=vlan_value, ipv6=True)
-+            answers = NetInterfaceV6(NetInterface.Autoconf, nic.hwaddr, vlan=vlan_value)
-         else:
--            answers = NetInterface(NetInterface.Static, nic.hwaddr, ip_field.value(),
-+            answers = NetInterfaceV6(NetInterface.Static, nic.hwaddr, ip_field.value(),
-                             subnet_field.value(), gateway_field.value(),
--                            dns_field.value(), vlan=vlan_value, ipv6=True)
-+                            dns_field.value(), vlan=vlan_value)
-
-         return RIGHT_FORWARDS, answers
-
-
-From dd5753532eaf3fbc2c32a78c035a61e8fce71bef Mon Sep 17 00:00:00 2001
-From: BenjiReis <benjamin.reis@vates.fr>
-Date: Fri, 3 Mar 2023 14:58:42 +0100
-Subject: [PATCH 8/8] rebase me: refactor TUI Netinterface configuration
-
-Factorize the intrface config form in one function
-called once for IPv4 and once for IPv6 if necessary
-
-Signed-off-by: BenjiReis <benjamin.reis@vates.fr>
----
- tui/network.py | 215 ++++++++++++-------------------------------------
- 1 file changed, 52 insertions(+), 163 deletions(-)
-
-diff --git a/tui/network.py b/tui/network.py
-index fa349378..aac946d4 100644
---- a/tui/network.py
-+++ b/tui/network.py
-@@ -55,13 +55,15 @@ def choose_primary_address_type(nic):
-         tui.screen.popWindow()
-         return direction, address_type
-
--    def get_ipv4_configuration(nic, txt, defaults, include_dns):
-+    def get_ip_configuration(nic, txt, defaults, include_dns, iface_class):
-         def use_vlan_cb_change():
-             vlan_field.setFlags(FLAG_DISABLED, vlan_cb.value())
-
-         def dhcp_change():
-             for x in [ ip_field, gateway_field, subnet_field, dns_field ]:
--                x.setFlags(FLAG_DISABLED, not dhcp_rb.selected())
-+                x.setFlags(FLAG_DISABLED, static_rb.selected())
-+
-+        ipv6 = iface_class == NetInterfaceV6
-
-         gf = GridFormHelp(tui.screen, 'Networking', 'ifconfig', 1, 8)
-         if txt is None:
-@@ -70,160 +72,41 @@ def dhcp_change():
-         b = [("Ok", "ok"), ("Back", "back")]
-         buttons = ButtonBar(tui.screen, b)
-
-+        #TODO? Change size for IPv6? If so which size?
-         ip_field = Entry(16)
-         subnet_field = Entry(16)
-         gateway_field = Entry(16)
-         dns_field = Entry(16)
-         vlan_field = Entry(16)
-
--        if defaults and defaults.mode == NetInterface.Static:
--            # static configuration defined previously
--            dhcp_rb = SingleRadioButton("Automatic configuration (DHCP)", None, 0)
--            dhcp_rb.setCallback(dhcp_change, ())
--            static_rb = SingleRadioButton("Static configuration:", dhcp_rb, 1)
--            static_rb.setCallback(dhcp_change, ())
--            if defaults.ipaddr:
--                ip_field.set(defaults.ipaddr)
--            if defaults.netmask:
--                subnet_field.set(defaults.netmask)
--            if defaults.gateway:
--                gateway_field.set(defaults.gateway)
--            if defaults.dns:
--                dns_field.set(defaults.dns[0])
--        else:
--            dhcp_rb = SingleRadioButton("Automatic configuration (DHCP)", None, 1)
--            dhcp_rb.setCallback(dhcp_change, ())
--            static_rb = SingleRadioButton("Static configuration:", dhcp_rb, 0)
--            static_rb.setCallback(dhcp_change, ())
--            ip_field.setFlags(FLAG_DISABLED, False)
--            subnet_field.setFlags(FLAG_DISABLED, False)
--            gateway_field.setFlags(FLAG_DISABLED, False)
--            dns_field.setFlags(FLAG_DISABLED, False)
--
--        vlan_cb = Checkbox("Use VLAN:", defaults.isVlan() if defaults else False)
--        vlan_cb.setCallback(use_vlan_cb_change, ())
--        if defaults and defaults.isVlan():
--            vlan_field.set(str(defaults.vlan))
--        else:
--            vlan_field.setFlags(FLAG_DISABLED, False)
--
--        ip_text = Textbox(15, 1, "IP Address:")
--        subnet_text = Textbox(15, 1, "Subnet mask:")
--        gateway_text = Textbox(15, 1, "Gateway:")
--        dns_text = Textbox(15, 1, "Nameserver:")
--        vlan_text = Textbox(15, 1, "VLAN (1-4094):")
--
--        entry_grid = Grid(2, include_dns and 4 or 3)
--        entry_grid.setField(ip_text, 0, 0)
--        entry_grid.setField(ip_field, 1, 0)
--        entry_grid.setField(subnet_text, 0, 1)
--        entry_grid.setField(subnet_field, 1, 1)
--        entry_grid.setField(gateway_text, 0, 2)
--        entry_grid.setField(gateway_field, 1, 2)
--        if include_dns:
--            entry_grid.setField(dns_text, 0, 3)
--            entry_grid.setField(dns_field, 1, 3)
--
--        vlan_grid =  Grid(2, 1)
--        vlan_grid.setField(vlan_text, 0, 0)
--        vlan_grid.setField(vlan_field, 1, 0)
--
--        gf.add(text, 0, 0, padding=(0, 0, 0, 1))
--        gf.add(dhcp_rb, 0, 2, anchorLeft=True)
--        gf.add(static_rb, 0, 3, anchorLeft=True)
--        gf.add(entry_grid, 0, 4, padding=(0, 0, 0, 1))
--        gf.add(vlan_cb, 0, 5, anchorLeft=True)
--        gf.add(vlan_grid, 0, 6, padding=(0, 0, 0, 1))
--        gf.add(buttons, 0, 7, growx=1)
--
--        loop = True
--        while loop:
--            result = gf.run()
--
--            if buttons.buttonPressed(result) in ['ok', None]:
--                # validate input
--                msg = ''
--                if static_rb.selected():
--                    if not netutil.valid_ipv4_addr(ip_field.value()):
--                        msg = 'IP Address'
--                    elif not netutil.valid_ipv4_addr(subnet_field.value()):
--                        msg = 'Subnet mask'
--                    elif gateway_field.value() != '' and not netutil.valid_ipv4_addr(gateway_field.value()):
--                        msg = 'Gateway'
--                    elif dns_field.value() != '' and not netutil.valid_ipv4_addr(dns_field.value()):
--                        msg = 'Nameserver'
--                if vlan_cb.selected():
--                    if not netutil.valid_vlan(vlan_field.value()):
--                        msg = 'VLAN'
--                if msg != '':
--                    tui.progress.OKDialog("Networking", "Invalid %s, please check the field and try again." % msg)
--                else:
--                    loop = False
--            else:
--                loop = False
--
--        tui.screen.popWindow()
--
--        if buttons.buttonPressed(result) == 'back': return LEFT_BACKWARDS, None
--
--        vlan_value = int(vlan_field.value()) if vlan_cb.selected() else None
--        if bool(dhcp_rb.selected()):
--            answers = NetInterface(NetInterface.DHCP, nic.hwaddr, vlan=vlan_value)
--        else:
--            answers = NetInterface(NetInterface.Static, nic.hwaddr, ip_field.value(),
--                                subnet_field.value(), gateway_field.value(),
--                                dns_field.value(), vlan=vlan_value)
--        return RIGHT_FORWARDS, answers
--
--    def get_ipv6_configuration(nic, txt, defaults, include_dns):
--        def dhcp_change():
--            for x in [ ip_field, gateway_field, subnet_field, dns_field ]:
--                x.setFlags(FLAG_DISABLED, static_rb.selected())
--
--        def use_vlan_cb_change():
--            vlan_field.setFlags(FLAG_DISABLED, vlan_cb.value())
--
--        gf = GridFormHelp(tui.screen, 'Networking', 'ifconfigv6', 1, 10)
--        if txt is None:
--            txt = "Configuration for %s (%s)" % (nic.name, nic.hwaddr)
--        text = TextboxReflowed(45, txt)
--        b = [("Ok", "ok"), ("Back", "back")]
--        buttons = ButtonBar(tui.screen, b)
--
--        ip_field = Entry(25)
--        subnet_field = Entry(25)
--        gateway_field = Entry(25)
--        dns_field = Entry(25)
--        vlan_field = Entry(25)
--
--        if defaults and defaults.modev6 == NetInterface.Static:
--            # static configuration defined previously
--            dhcp_rb = SingleRadioButton("Automatic configuration (DHCP)", None, 0)
--            dhcp_rb.setCallback(dhcp_change, ())
--            autoconf_rb = SingleRadioButton("Automatic configuration (Autoconf)", dhcp_rb, 0)
-+        static = defaults and (defaults.modev6 if ipv6 else defaults.mode) == NetInterface.Static
-+        dhcp_rb = SingleRadioButton("Automatic configuration (DHCP)", None, not static)
-+        dhcp_rb.setCallback(dhcp_change, ())
-+        static_rb = SingleRadioButton("Static configuration:", dhcp_rb, static)
-+        static_rb.setCallback(dhcp_change, ())
-+        if ipv6:
-+            autoconf_rb = SingleRadioButton("Automatic configuration (Autoconf)", autoconf_rb, 0)
-             autoconf_rb.setCallback(dhcp_change, ())
--            static_rb = SingleRadioButton("Static configuration:", autoconf_rb, 1)
--            static_rb.setCallback(dhcp_change, ())
--            if defaults:
-+        dhcp_change()
-+
-+        if defaults:
-+            if ipv6:
-                 if defaults.ipv6addr:
-                     ip6addr, netmask = defaults.ipv6addr.split("/")
-                     ip_field.set(ip6addr)
-                     subnet_field.set(netmask)
-                 if defaults.ipv6_gateway:
-                     gateway_field.set(defaults.ipv6_gateway)
--                if defaults.dns:
--                    dns_field.set(defaults.dns[0])
--        else:
--            dhcp_rb = SingleRadioButton("Automatic configuration (DHCP)", None, 1)
--            dhcp_rb.setCallback(dhcp_change, ())
--            autoconf_rb = SingleRadioButton("Automatic configuration (Autoconf)", dhcp_rb, 0)
--            autoconf_rb.setCallback(dhcp_change, ())
--            static_rb = SingleRadioButton("Static configuration:", autoconf_rb, 0)
--            static_rb.setCallback(dhcp_change, ())
--            ip_field.setFlags(FLAG_DISABLED, False)
--            subnet_field.setFlags(FLAG_DISABLED, False)
--            gateway_field.setFlags(FLAG_DISABLED, False)
--            dns_field.setFlags(FLAG_DISABLED, False)
-+            else:
-+                if defaults.ipaddr:
-+                    ip_field.set(defaults.ipaddr)
-+                if defaults.netmask:
-+                    subnet_field.set(defaults.netmask)
-+                if defaults.gateway:
-+                    gateway_field.set(defaults.gateway)
-+
-+            if defaults.dns:
-+                dns_field.set(defaults.dns[0])
-
-         vlan_cb = Checkbox("Use VLAN:", defaults.isVlan() if defaults else False)
-         vlan_cb.setCallback(use_vlan_cb_change, ())
-@@ -232,8 +115,10 @@ def use_vlan_cb_change():
-         else:
-             vlan_field.setFlags(FLAG_DISABLED, False)
-
--        ip_text = Textbox(15, 1, "IPv6 Address:")
--        subnet_text = Textbox(15, 1, "CIDR (4-128):")
-+        ip_msg = "IPv6 Address" if ipv6 else "IP Address"
-+        mask_msg = "CIDR (4-128)" if ipv6 else "Subnet mask"
-+        ip_text = Textbox(15, 1, "%s:" % ip_msg)
-+        subnet_text = Textbox(15, 1, "%s:" % mask_msg)
-         gateway_text = Textbox(15, 1, "Gateway:")
-         dns_text = Textbox(15, 1, "Nameserver:")
-         vlan_text = Textbox(15, 1, "VLAN (1-4094):")
-@@ -255,14 +140,17 @@ def use_vlan_cb_change():
-
-         gf.add(text, 0, 0, padding=(0, 0, 0, 1))
-         gf.add(dhcp_rb, 0, 2, anchorLeft=True)
--        gf.add(autoconf_rb, 0, 3, anchorLeft=True)
--        gf.add(static_rb, 0, 4, anchorLeft=True)
--        gf.add(entry_grid, 0, 5, padding=(0, 0, 0, 1))
--        gf.add(vlan_cb, 0, 6, anchorLeft=True)
--        gf.add(vlan_grid, 0, 7, padding=(0, 0, 0, 1))
--        gf.add(buttons, 0, 8, growx=1)
-+        gf.add(static_rb, 0, 3, anchorLeft=True)
-+        if ipv6:
-+            gf.add(autoconf_rb, 0, 4, anchorLeft=True)
-+        # One more line for IPv6 autoconf
-+        gf.add(entry_grid, 0, 4 + ipv6, padding=(0, 0, 0, 1))
-+        gf.add(vlan_cb, 0, 5 + ipv6, anchorLeft=True)
-+        gf.add(vlan_grid, 0, 6 + ipv6, padding=(0, 0, 0, 1))
-+        gf.add(buttons, 0, 7 + ipv6, growx=1)
-
-         loop = True
-+        ip_family = socket.AF_INET6 if ipv6 else socket.AF_INET
-         while loop:
-             result = gf.run()
-
-@@ -271,13 +159,14 @@ def use_vlan_cb_change():
-                 msg = ''
-                 if static_rb.selected():
-                     subnet_value = int(subnet_field.value())
--                    if not netutil.valid_ipv6_addr(ip_field.value()):
--                        msg = 'IPv6 Address'
--                    elif subnet_value > 128 or subnet_value < 4:
--                        msg = 'CIDR'
--                    elif gateway_field.value() != '' and not netutil.valid_ipv6_addr(gateway_field.value()):
-+                    invalid_subnet = subnet_value > 128 or subnet_value < 4 if ipv6 else not netutil.valid_ipv4_addr(subnet_field.value())
-+                    if not netutil.valid_ip_address_family(ip_field.value(), ip_family):
-+                        msg = ip_msg
-+                    elif invalid_subnet:
-+                        msg = mask_msg
-+                    elif gateway_field.value() != '' and not netutil.valid_ip_address_family(gateway_field.value(), ip_family):
-                         msg = 'Gateway'
--                    elif dns_field.value() != '' and not netutil.valid_ipv6_addr(dns_field.value()):
-+                    elif dns_field.value() != '' and not netutil.valid_ip_address_family(dns_field.value(), ip_family):
-                         msg = 'Nameserver'
-                 if vlan_cb.selected():
-                     if not netutil.valid_vlan(vlan_field.value()):
-@@ -295,11 +184,11 @@ def use_vlan_cb_change():
-
-         vlan_value = int(vlan_field.value()) if vlan_cb.selected() else None
-         if bool(dhcp_rb.selected()):
--            answers = NetInterfaceV6(NetInterface.DHCP, nic.hwaddr, vlan=vlan_value)
--        elif bool(autoconf_rb.selected()):
--            answers = NetInterfaceV6(NetInterface.Autoconf, nic.hwaddr, vlan=vlan_value)
-+            answers = iface_class(NetInterface.DHCP, nic.hwaddr, vlan=vlan_value)
-+        elif ipv6 and bool(autoconf_rb.selected()):
-+            answers = iface_class(NetInterface.Autoconf, nic.hwaddr, vlan=vlan_value)
-         else:
--            answers = NetInterfaceV6(NetInterface.Static, nic.hwaddr, ip_field.value(),
-+            answers = iface_class(NetInterface.Static, nic.hwaddr, ip_field.value(),
-                             subnet_field.value(), gateway_field.value(),
-                             dns_field.value(), vlan=vlan_value)
-
-@@ -311,12 +200,12 @@ def use_vlan_cb_change():
-
-     answers = None
-     if address_type in ["ipv4", "dual"]:
--        direction, answers = get_ipv4_configuration(nic, txt, defaults, include_dns)
-+        direction, answers = get_ip_configuration(nic, txt, defaults, include_dns, NetInterface)
-         if direction == LEFT_BACKWARDS:
-             return LEFT_BACKWARDS, None
-
-     if address_type in ["ipv6", "dual"]:
--        direction, answers_ipv6 = get_ipv6_configuration(nic, txt, defaults, include_dns)
-+        direction, answers_ipv6 = get_ip_configuration(nic, txt, defaults, include_dns, NetInterfaceV6)
-         if direction == LEFT_BACKWARDS:
-             return LEFT_BACKWARDS, None
+diff --git i/upgrade.py w/upgrade.py
+index ec8d910..f2bacc6 100644
+--- i/upgrade.py
++++ w/upgrade.py
+@@ -474,6 +474,11 @@ class ThirdGenUpgrader(Upgrader):
+             nfd.write("NETWORKING_IPV6=no\n")
+             nfd.close()
+             netutil.disable_ipv6_module(mounts["root"])
++        else:
++            # Enable IPV6
++            with open("%s/etc/sysctl.d/91-net-ipv6.conf" % mounts["root"], "w") as ipv6_conf:
++                for i in ['all', 'default']:
++                    ipv6_conf.write('net.ipv6.conf.%s.disable_ipv6=0\n' % i)
+ 
+         # handle the conversion of devices from aacraid to smartpqi
+         primary_disk = self.source.getInventoryValue("PRIMARY_DISK")
