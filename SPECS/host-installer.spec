@@ -112,9 +112,7 @@ mkdir -p \
     %{buildroot}/etc/init.d \
     %{buildroot}/etc/modprobe.d \
     %{buildroot}/etc/modules-load.d \
-    %{buildroot}/etc/depmod.d \
-    %{buildroot}/etc/dracut.conf.d \
-    %{buildroot}/etc/systemd/system/systemd-udevd.d
+    %{buildroot}/etc/dracut.conf.d
 
 cp startup/{interface-rename-sideway,early-blacklist} %{buildroot}/etc/init.d/
 cp startup/functions %{buildroot}/etc/init.d/installer-functions
@@ -125,11 +123,7 @@ cp startup/modprobe.mlx4 %{buildroot}/etc/modprobe.d/mlx4.conf
 
 cp startup/iscsi-modules %{buildroot}%{_sysconfdir}/modules-load.d/iscsi.conf
 
-cp startup/depmod.conf %{buildroot}/etc/depmod.d/
-
 cp startup/{preinit,S05ramdisk,S06mount} %{buildroot}/%{installer_dir}/
-
-cp startup/systemd-udevd_depmod.conf %{buildroot}/etc/systemd/system/systemd-udevd.d/installer.conf
 
 # Generate a multipath configuration from sm's copy, removing
 # the blacklist and blacklist_exception sections.
@@ -217,9 +211,6 @@ rm -rf %{buildroot}
 %defattr(664,root,root,775)
 /etc/modprobe.d/*
 /etc/modules-load.d/iscsi.conf
-/etc/depmod.d/depmod.conf
-
-/etc/systemd/system/*/installer.conf
 
 %doc
 
@@ -267,6 +258,10 @@ done
 rm -f /tmp/firmware-used.$$
 
 %changelog
+* next
+- Don't install a depmod config identical to CentOS7, and stop causing
+  udev service start to run "depmod -a"
+
 * Tue Nov 23 2022 Yann Dirson <yann.dirson@vates.fr> - 10.10.0-1.1
 - Include a diff from v10.10.0 to v10.10.3-21-g3d5df76
 
