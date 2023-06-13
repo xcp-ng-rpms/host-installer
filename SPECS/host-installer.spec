@@ -238,7 +238,7 @@ rm -rf %{buildroot}
 /sbin/chkconfig --add early-blacklist
 /sbin/chkconfig --add interface-rename-sideway
 
-%triggerin -- kernel
+%triggerin -- kernel, kernel-alt
 rm -rf /boot/*
 rm -rf /usr/lib/modules/*/kernel/{drivers/infiniband,fs/{autofs4,btrfs,cramfs,exofs,gfs2,jfs,nfsd,ntfs,ocfs2,reiserfs,ufs,xfs}}
 
@@ -261,6 +261,7 @@ rm -f /tmp/firmware-used.$$
 * next
 - Don't install a depmod config identical to CentOS7, and stop causing
   udev service start to run "depmod -a"
+- apply module-removing trigger to kernel-alt too
 
 * Tue Nov 23 2022 Yann Dirson <yann.dirson@vates.fr> - 10.10.0-1.1
 - Include a diff from v10.10.0 to v10.10.3-21-g3d5df76
