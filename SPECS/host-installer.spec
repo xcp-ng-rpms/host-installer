@@ -1,16 +1,10 @@
-%global package_speccommit e2726e108c480a1796f01e3109580856df71189d
-%global package_srccommit v10.10.0
 Summary: XenServer Installer
 Name: host-installer
-Version: 10.10.0
-Release: 1.1%{?xsrel}%{?dist}
+Version: 10.10.5.xcpng.1
+Release: 1%{?xsrel}%{?dist}
 License: GPL
 Group: Applications/System
-Source0: host-installer-10.10.0.tar.gz
-
-# XCP-ng patches
-# git diff v10.10.0..v10.10.3-21-g3d5df76
-Patch1000: host-installer-10.10.0-xcpng8.3.patch
+Source0: host-installer-%{version}.tar.gz
 
 # This is where we get 'multipath.conf' from
 BuildRequires: sm xenserver-multipath xenserver-lvm2
@@ -30,6 +24,9 @@ Requires: bzip2 tar gzip rpm
 
 # For killall
 Requires: psmisc
+
+# IPv6
+Requires: ndisc6
 
 Requires(post): initscripts
 
@@ -258,7 +255,15 @@ done
 rm -f /tmp/firmware-used.$$
 
 %changelog
-* next
+* Wed Jun 14 2023 Benjamin Reis <benjamin.reis@vates.fr> - 10.10.5.xcpng.1-1
+- Update to v10.10.5.xcpng.1
+- Drop our patches as they're in the tarball from our own repo now
+- IPv6 support in TUI
+- Local SR: make EXT the default and first option instead of LVM
+- RAID: only propose creation with at least 2 disks and no RAID
+- RAID support: zap partition tables of disks before building a RAID
+- Show primary disk selection even if there is only one disk
+- Remove supplemental pack dialog at the end of installation
 - Don't install a depmod config identical to CentOS7, and stop causing
   udev service start to run "depmod -a"
 - apply module-removing trigger to kernel-alt too
