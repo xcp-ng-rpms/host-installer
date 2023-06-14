@@ -1,8 +1,9 @@
 Summary: XenServer Installer
 Name: host-installer
 Version: 10.10.5.xcpng.1
-Release: 1%{?xsrel}%{?dist}
-License: GPL
+Release: 2%{?xsrel}%{?dist}
+# The entire source code is GPLv2 except for cpiofile.py which is MIT
+License: GPLv2 and MIT
 Group: Applications/System
 Source0: host-installer-%{version}.tar.gz
 
@@ -197,6 +198,8 @@ rm -rf %{buildroot}
 %config /etc/multipath.conf.disabled
 /etc/dracut.conf.d/installer.conf
 
+%license LICENSE
+
 %files startup
 %defattr(775,root,root,-)
 
@@ -255,6 +258,12 @@ done
 rm -f /tmp/firmware-used.$$
 
 %changelog
+* Wed Jun 14 2023 Samuel Verschelde <stormi-xcp@ylix.fr> - 10.10.5.xcpng.1-2
+- Loosely rebase on XS's 10.10.4-1 SRPM: only apply relevant packaging changes.
+- Sources unchanged: we keep our tarball.
+- Upstream packaging change included from XenServer's SRPM:
+  - CP-40676: Clarify licensing
+
 * Wed Jun 14 2023 Benjamin Reis <benjamin.reis@vates.fr> - 10.10.5.xcpng.1-1
 - Update to v10.10.5.xcpng.1
 - Drop our patches as they're in the tarball from our own repo now
