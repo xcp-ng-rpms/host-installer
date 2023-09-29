@@ -1,7 +1,7 @@
 Summary: XenServer Installer
 Name: host-installer
-Version: 10.10.5.xcpng.1
-Release: 2%{?xsrel}%{?dist}
+Version: 10.10.9.xcpng.1
+Release: 1%{?xsrel}%{?dist}
 # The entire source code is GPLv2 except for cpiofile.py which is MIT
 License: GPLv2 and MIT
 Group: Applications/System
@@ -258,6 +258,9 @@ done
 rm -f /tmp/firmware-used.$$
 
 %changelog
+* Mon Oct 16 2023 Yann Dirson <yann.dirson@vates.fr> - 10.10.9.xcpng.1-1
+- Update to v10.10.9.xcpng.1
+
 * Wed Jun 14 2023 Samuel Verschelde <stormi-xcp@ylix.fr> - 10.10.5.xcpng.1-2
 - Loosely rebase on XS's 10.10.4-1 SRPM: only apply relevant packaging changes.
 - Sources unchanged: we keep our tarball.
