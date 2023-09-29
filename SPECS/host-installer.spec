@@ -1,13 +1,18 @@
-%global package_speccommit bb770bcb2fc2c6caae8c38f8122b1b9854df220e
-%global package_srccommit v10.10.4
+%global package_speccommit 888398f5e286f05685713d05aa3f898586f52c3b
+%global usver 10.10.8
+%global xsver 3
+%global xsrel %{xsver}%{?xscount}%{?xshash}
+%global package_srccommit v10.10.8
+
 Summary: XenServer Installer
 Name: host-installer
-Version: 10.10.4
-Release: 1%{?xsrel}%{?dist}
+Version: 10.10.8
+Release: %{?xsrel}%{?dist}
 # The entire source code is GPLv2 except for cpiofile.py which is MIT
 License: GPLv2 and MIT
 Group: Applications/System
-Source0: host-installer-10.10.4.tar.gz
+Source0: host-installer-10.10.8.tar.gz
+Patch0: 0001-CA-381594-Check-ntp_servers-before-use-in-DHCP-insta.patch
 # This is where we get 'multipath.conf' from
 BuildRequires: sm xenserver-multipath xenserver-lvm2
 
@@ -265,6 +270,28 @@ done
 rm -f /tmp/firmware-used.$$
 
 %changelog
+* Thu Aug 17 2023 Gerald Elder-Vass <gerald.elder-vass@cloud.com> - 10.10.8-3
+- CA-381594: Fix release number in koji
+
+* Thu Aug 17 2023 Gerald Elder-Vass <gerald.elder-vass@cloud.com> - 10.10.8-2
+- CA-381594: Patch for Check ntp-servers before use in DHCP
+
+* Mon Jul 31 2023 Alex Brett <alex.brett@cloud.com> - 10.10.8-1
+- CA-380626: Fix unattended installation
+
+* Fri Jul 28 2023 Alex Brett <alex.brett@cloud.com> - 10.10.7-1
+- CP-44216: Update EULA to EUA
+- CA-369899: Fixes to NTP configuration
+- Always show select primary disk
+- Small improvements to logging and removal of dead code
+
+* Sun Apr 23 2023 Deli Zhang <dzhang@tibco.com> - 10.10.6-1
+- CP-42642: Restore NRPE service config
+
+* Mon Feb 13 2023 Ross Lagerwall <ross.lagerwall@citrix.com> - 10.10.5-1
+- Several improvements to wording and docs.
+- CA-375063: Mount efivarfs when calling efibootmgr
+
 * Mon Jan 23 2023 Ross Lagerwall <ross.lagerwall@citrix.com> - 10.10.4-1
 - CP-41369: Match Citrix Hypervisor when removing UEFI boot entry
 - util.runCmd2: log commands even in case of exceptions
