@@ -1,7 +1,7 @@
 Summary: XenServer Installer
 Name: host-installer
 Version: 10.10.9.xcpng.1
-Release: 1%{?xsrel}%{?dist}
+Release: 1%{?dist}
 # The entire source code is GPLv2 except for cpiofile.py which is MIT
 License: GPLv2 and MIT
 Group: Applications/System
