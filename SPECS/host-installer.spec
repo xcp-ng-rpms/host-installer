@@ -1,6 +1,6 @@
 Summary: XenServer Installer
 Name: host-installer
-Version: 10.10.11.xcpng.2
+Version: 10.10.11.xcpng.3
 Release: 1%{?dist}
 # The entire source code is GPLv2 except for cpiofile.py which is MIT
 License: GPLv2 and MIT
@@ -258,6 +258,10 @@ done
 rm -f /tmp/firmware-used.$$
 
 %changelog
+* Fri Dec 22 2023 Yann Dirson <yann.dirson@vates.fr> - 10.10.11.xcpng.3-1
+- Update to v10.10.11.xcpng.3, bringing:
+  - Fix regression preserving multipath configuration on upgrade
+
 * Fri Dec 15 2023 Yann Dirson <yann.dirson@vates.fr> - 10.10.11.xcpng.2-1
 - Update to v10.10.11.xcpng.2, bringing:
   - Displays Supplemental Packs dialog when Driver Disks are used
