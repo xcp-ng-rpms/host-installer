@@ -1,18 +1,15 @@
-%global package_speccommit 888398f5e286f05685713d05aa3f898586f52c3b
-%global usver 10.10.8
-%global xsver 3
-%global xsrel %{xsver}%{?xscount}%{?xshash}
-%global package_srccommit v10.10.8
+%global package_speccommit 4f86560e9590b1b64cbb58ac34f5c0345548c867
+%global package_srccommit v10.10.11
+%{!?xsrel: %global xsrel 1}
 
 Summary: XenServer Installer
 Name: host-installer
-Version: 10.10.8
+Version: 10.10.11
 Release: %{?xsrel}%{?dist}
 # The entire source code is GPLv2 except for cpiofile.py which is MIT
 License: GPLv2 and MIT
 Group: Applications/System
-Source0: host-installer-10.10.8.tar.gz
-Patch0: 0001-CA-381594-Check-ntp_servers-before-use-in-DHCP-insta.patch
+Source0: host-installer-10.10.11.tar.gz
 # This is where we get 'multipath.conf' from
 BuildRequires: sm xenserver-multipath xenserver-lvm2
 
@@ -39,6 +36,7 @@ Requires(post): initscripts
 %global __os_install_post %(echo '%{__os_install_post}' | sed -e 's!/usr/lib[^[:space:]]*/brp-python-bytecompile[[:space:]].*$!!g')
 
 %define installer_dir /opt/xensource/installer
+%define feature_flag_dir /etc/xensource/features
 
 # TODO: 'xenserver' branding should be removed!
 %define efi_dir /EFI/xenserver
@@ -115,7 +113,8 @@ mkdir -p \
     %{buildroot}/etc/modules-load.d \
     %{buildroot}/etc/depmod.d \
     %{buildroot}/etc/dracut.conf.d \
-    %{buildroot}/etc/systemd/system/systemd-udevd.d
+    %{buildroot}/etc/systemd/system/systemd-udevd.d \
+    %{buildroot}/%{feature_flag_dir}
 
 cp startup/{interface-rename-sideway,early-blacklist} %{buildroot}/etc/init.d/
 cp startup/functions %{buildroot}/etc/init.d/installer-functions
@@ -152,6 +151,8 @@ cat >%{buildroot}/etc/dracut.conf.d/installer.conf <<EOF
 echo Skipping initrd creation in the installer
 exit 0
 EOF
+
+touch %{buildroot}/%{feature_flag_dir}/supplemental-packs
 
 %clean
 rm -rf %{buildroot}
@@ -206,6 +207,9 @@ rm -rf %{buildroot}
 %{installer_dir}/timezones
 %config /etc/multipath.conf.disabled
 /etc/dracut.conf.d/installer.conf
+
+# Feature Flags
+%{feature_flag_dir}
 
 %license LICENSE
 
@@ -270,6 +274,21 @@ done
 rm -f /tmp/firmware-used.$$
 
 %changelog
+* Thu Nov 30 2023 Alex Brett <alex.brett@cloud.com> - 10.10.11-1
+- CA-385350: Fix handling of NTP configuration over upgrade
+
+* Mon Nov 13 2023 Gerald Elder-Vass <gerald.elder-vass@citrix.com> - 10.10.10-1
+- XSI-1498: Log any exceptions parsing existing bootloader config
+- Maintenance: remove dead code of DebStyleInterface
+- Hide supplemental-pack feature behind a feature flag
+- CP-20921: Support fetching answerfile and install scripts from authenticated HTTP
+- CA-381594: Check ntp_servers before use in DHCP install
+- Keep `sched-gran`grub entry upon upgrade
+- repository: remove unused "mount" parameter from getBranding
+- tui: show the disk on which an existing installation or backup is found
+- New diskutil.getHumanDiskLabel to centralize formatting of disk name for user
+- CP-43949: Raise exception when we can't find networkd.db for performInstallation
+
 * Thu Aug 17 2023 Gerald Elder-Vass <gerald.elder-vass@cloud.com> - 10.10.8-3
 - CA-381594: Fix release number in koji
 
