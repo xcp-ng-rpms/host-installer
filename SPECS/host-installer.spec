@@ -1,7 +1,7 @@
 Summary: XenServer Installer
 Name: host-installer
 Version: 10.10.11.xcpng.3
-Release: 1%{?dist}
+Release: 2%{?dist}
 # The entire source code is GPLv2 except for cpiofile.py which is MIT
 License: GPLv2 and MIT
 Group: Applications/System
@@ -36,6 +36,7 @@ Requires(post): initscripts
 %global __os_install_post %(echo '%{__os_install_post}' | sed -e 's!/usr/lib[^[:space:]]*/brp-python-bytecompile[[:space:]].*$!!g')
 
 %define installer_dir /opt/xensource/installer
+%define feature_flag_dir /etc/xensource/features
 
 # TODO: 'xenserver' branding should be removed!
 %define efi_dir /EFI/xenserver
@@ -110,7 +111,8 @@ mkdir -p \
     %{buildroot}/etc/init.d \
     %{buildroot}/etc/modprobe.d \
     %{buildroot}/etc/modules-load.d \
-    %{buildroot}/etc/dracut.conf.d
+    %{buildroot}/etc/dracut.conf.d \
+    %{buildroot}/%{feature_flag_dir}
 
 cp startup/{interface-rename-sideway,early-blacklist} %{buildroot}/etc/init.d/
 cp startup/functions %{buildroot}/etc/init.d/installer-functions
@@ -143,6 +145,9 @@ cat >%{buildroot}/etc/dracut.conf.d/installer.conf <<EOF
 echo Skipping initrd creation in the installer
 exit 0
 EOF
+
+# XCP-ng: no supplemental packs feature
+# touch %{buildroot}/%{feature_flag_dir}/supplemental-packs
 
 %clean
 rm -rf %{buildroot}
@@ -197,6 +202,9 @@ rm -rf %{buildroot}
 %{installer_dir}/timezones
 %config /etc/multipath.conf.disabled
 /etc/dracut.conf.d/installer.conf
+
+# Feature Flags
+%{feature_flag_dir}
 
 %license LICENSE
 
@@ -258,6 +266,12 @@ done
 rm -f /tmp/firmware-used.$$
 
 %changelog
+* Mon Jan 22 2024 Samuel Verschelde <stormi-xcp@ylix.fr> - 10.10.11.xcpng.3-2
+- Loosely rebase on XS's 10.10.11-1 SRPM: only apply relevant packaging changes.
+- Sources unchanged: we keep our tarball.
+- Upstream packaging change included from XenServer's SRPM:
+  - Handling of feature flags
+
 * Fri Dec 22 2023 Yann Dirson <yann.dirson@vates.fr> - 10.10.11.xcpng.3-1
 - Update to v10.10.11.xcpng.3, bringing:
   - Fix regression preserving multipath configuration on upgrade
