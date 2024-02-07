@@ -1,11 +1,14 @@
 Summary: XenServer Installer
 Name: host-installer
 Version: 10.10.11.xcpng.3
-Release: 2%{?dist}
+Release: 3%{?dist}
 # The entire source code is GPLv2 except for cpiofile.py which is MIT
 License: GPLv2 and MIT
 Group: Applications/System
 Source0: host-installer-%{version}.tar.gz
+
+# XCP-ng: for 8.3beta2 only
+Patch1: 0001-Prevent-upgrading-from-platform-3.4.0.patch
 
 # This is where we get 'multipath.conf' from
 BuildRequires: sm xenserver-multipath xenserver-lvm2
@@ -266,6 +269,9 @@ done
 rm -f /tmp/firmware-used.$$
 
 %changelog
+* Wed Feb 07 2024 Yann Dirson <yann.dirson@vates.tech> - 10.10.11.xcpng.3-3
+- Prevent upgrades from XS 8 and XCP-ng 8.3 (intended for 8.3beta2 only)
+
 * Mon Jan 22 2024 Samuel Verschelde <stormi-xcp@ylix.fr> - 10.10.11.xcpng.3-2
 - Loosely rebase on XS's 10.10.11-1 SRPM: only apply relevant packaging changes.
 - Sources unchanged: we keep our tarball.
