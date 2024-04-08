@@ -1,17 +1,18 @@
-%global package_speccommit 4f86560e9590b1b64cbb58ac34f5c0345548c867
-%global package_srccommit v10.10.11
-%{!?xsrel: %global xsrel 1}
+%global package_speccommit 5c9ac7087e1f66197be50cbefec0313348a4afd2
+%global package_srccommit v10.10.16
 
 Summary: XenServer Installer
 Name: host-installer
-Version: 10.10.11
-Release: %{?xsrel}%{?dist}
+Version: 10.10.16
+Release: 1%{?xsrel}%{?dist}
 # The entire source code is GPLv2 except for cpiofile.py which is MIT
 License: GPLv2 and MIT
 Group: Applications/System
-Source0: host-installer-10.10.11.tar.gz
+Source0: host-installer-10.10.16.tar.gz
 # This is where we get 'multipath.conf' from
 BuildRequires: sm xenserver-multipath xenserver-lvm2
+BuildRequires: python-six python-mock
+BuildRequires: xcp-python-libs
 
 Requires: xenserver-multipath xenserver-lvm2 iscsi-initiator-utils
 
@@ -29,6 +30,8 @@ Requires: bzip2 tar gzip rpm
 # For killall
 Requires: psmisc
 
+Requires: python-six
+
 Requires(post): initscripts
 
 # Strictly no byte compiling python. Python in the install
@@ -40,6 +43,8 @@ Requires(post): initscripts
 
 # TODO: 'xenserver' branding should be removed!
 %define efi_dir /EFI/xenserver
+
+%define large_block_capable_sr_type xfs
 
 %description
 XenServer Installer
@@ -65,6 +70,9 @@ XenServer installer bootloader files
 %autosetup -p1
 
 %build
+
+%check
+test/test.sh
 
 %install
 rm -rf %{buildroot}
@@ -99,6 +107,7 @@ cp -R \
         repository.py \
         restore.py \
         scripts.py \
+        shrinklvm.py \
         snackutil.py \
         uicontroller.py \
         upgrade.py \
@@ -153,6 +162,7 @@ exit 0
 EOF
 
 touch %{buildroot}/%{feature_flag_dir}/supplemental-packs
+echo %{large_block_capable_sr_type} > %{buildroot}/%{feature_flag_dir}/large-block-capable-sr-type
 
 %clean
 rm -rf %{buildroot}
@@ -184,6 +194,7 @@ rm -rf %{buildroot}
 %{installer_dir}/repository.py
 %{installer_dir}/restore.py
 %{installer_dir}/scripts.py
+%{installer_dir}/shrinklvm.py
 %{installer_dir}/snackutil.py
 %{installer_dir}/uicontroller.py
 %{installer_dir}/upgrade.py
@@ -274,10 +285,30 @@ done
 rm -f /tmp/firmware-used.$$
 
 %changelog
+* Wed Feb 28 2024 Gerald Elder-Vass <gerald.elder-vass@cloud.com> - 10.10.16-1
+- CA-389160: Filter secrets when logging results/answers during failures
+
+* Tue Feb 13 2024 Ross Lagerwall <ross.lagerwall@citrix.com> - 10.10.15-1
+- CP-45747 Allow 4KN-capable SR type to be used
+
+* Tue Feb 06 2024 Frediano Ziglio <frediano.ziglio@cloud.com> - 10.10.14-1
+- CP-47538: Deprecate legacy BIOS boot
+- CP-45554 CP-45555: Support SDX upgrade
+
+* Thu Jan 18 2024 Deli Zhang <deli.zhang@cloud.com> - 10.10.13-1
+- CP-44441: Restore SNMP service config
+
+* Wed Jan 03 2024 Gerald Elder-Vass <gerald.elder-vass@cloud.com> - 10.10.12-1
+- CP-37929: Remove legacy logrotate mechanism
+- Use constant octal syntax compatible with Python3
+- Include mmcblk-devices in disk selection
+- Use explicit integer division where necessary
+- CA-384621: Do not move partition to preserve data
+
 * Thu Nov 30 2023 Alex Brett <alex.brett@cloud.com> - 10.10.11-1
 - CA-385350: Fix handling of NTP configuration over upgrade
 
-* Mon Nov 13 2023 Gerald Elder-Vass <gerald.elder-vass@citrix.com> - 10.10.10-1
+* Mon Nov 13 2023 Gerald Elder-Vass <gerald.elder-vass@cloud.com> - 10.10.10-1
 - XSI-1498: Log any exceptions parsing existing bootloader config
 - Maintenance: remove dead code of DebStyleInterface
 - Hide supplemental-pack feature behind a feature flag
