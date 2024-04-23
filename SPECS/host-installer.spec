@@ -1,7 +1,7 @@
 Summary: XenServer Installer
 Name: host-installer
-Version: 10.10.11.xcpng.3
-Release: 3%{?dist}
+Version: 10.10.16.xcpng.1
+Release: 1%{?dist}
 # The entire source code is GPLv2 except for cpiofile.py which is MIT
 License: GPLv2 and MIT
 Group: Applications/System
@@ -12,6 +12,8 @@ Patch1: 0001-Prevent-upgrading-from-platform-3.4.0.patch
 
 # This is where we get 'multipath.conf' from
 BuildRequires: sm xenserver-multipath xenserver-lvm2
+BuildRequires: python-six python-mock
+BuildRequires: xcp-python-libs
 
 Requires: xenserver-multipath xenserver-lvm2 iscsi-initiator-utils
 
@@ -32,6 +34,8 @@ Requires: psmisc
 # IPv6
 Requires: ndisc6
 
+Requires: python-six
+
 Requires(post): initscripts
 
 # Strictly no byte compiling python. Python in the install
@@ -43,6 +47,8 @@ Requires(post): initscripts
 
 # TODO: 'xenserver' branding should be removed!
 %define efi_dir /EFI/xenserver
+
+%define large_block_capable_sr_type largeblock
 
 %description
 XenServer Installer
@@ -68,6 +74,9 @@ XenServer installer bootloader files
 %autosetup -p1
 
 %build
+
+%check
+test/test.sh
 
 %install
 rm -rf %{buildroot}
@@ -102,6 +111,7 @@ cp -R \
         repository.py \
         restore.py \
         scripts.py \
+        shrinklvm.py \
         snackutil.py \
         uicontroller.py \
         upgrade.py \
@@ -151,6 +161,7 @@ EOF
 
 # XCP-ng: no supplemental packs feature
 # touch %{buildroot}/%{feature_flag_dir}/supplemental-packs
+echo %{large_block_capable_sr_type} > %{buildroot}/%{feature_flag_dir}/large-block-capable-sr-type
 
 %clean
 rm -rf %{buildroot}
@@ -182,6 +193,7 @@ rm -rf %{buildroot}
 %{installer_dir}/repository.py
 %{installer_dir}/restore.py
 %{installer_dir}/scripts.py
+%{installer_dir}/shrinklvm.py
 %{installer_dir}/snackutil.py
 %{installer_dir}/uicontroller.py
 %{installer_dir}/upgrade.py
@@ -269,6 +281,15 @@ done
 rm -f /tmp/firmware-used.$$
 
 %changelog
+* Mon Apr 22 2024 Yann Dirson <yann.dirson@vates.tech> - 10.10.16.xcpng.1-1
+- Loosely rebase packaging on XS's 10.10.16-1, bringing:
+  - declaring support for 4KN-capable SR
+  - run tests on package build
+- Update to v10.10.16.xcpng.1 prerelease, bringing:
+  - deprecate legacy BIOS boot
+  - support for upgrading from old MBR to new GPT layout
+  - allow 4KN-capable SR type to be used
+
 * Wed Feb 07 2024 Yann Dirson <yann.dirson@vates.tech> - 10.10.11.xcpng.3-3
 - Prevent upgrades from XS 8 and XCP-ng 8.3 (intended for 8.3beta2 only)
 
