@@ -1,6 +1,6 @@
 Summary: XenServer Installer
 Name: host-installer
-Version: 10.10.16.xcpng.1
+Version: 10.10.16.xcpng.2
 Release: 1%{?dist}
 # The entire source code is GPLv2 except for cpiofile.py which is MIT
 License: GPLv2 and MIT
@@ -281,11 +281,15 @@ done
 rm -f /tmp/firmware-used.$$
 
 %changelog
+* Fri Apr 26 2024 Yann Dirson <yann.dirson@vates.tech> - 10.10.16.xcpng.2-1
+- Update to v10.10.16.xcpng.2 release, bringing:
+  - Make the unsupported / for-troubleshooting status of kernel-alt more obvious
+
 * Mon Apr 22 2024 Yann Dirson <yann.dirson@vates.tech> - 10.10.16.xcpng.1-1
 - Loosely rebase packaging on XS's 10.10.16-1, bringing:
   - declaring support for 4KN-capable SR
   - run tests on package build
-- Update to v10.10.16.xcpng.1 prerelease, bringing:
+- Update to v10.10.16.xcpng.1 release, bringing:
   - deprecate legacy BIOS boot
   - support for upgrading from old MBR to new GPT layout
   - allow 4KN-capable SR type to be used
