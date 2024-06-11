@@ -1,14 +1,11 @@
 Summary: XenServer Installer
 Name: host-installer
 Version: 10.10.16.xcpng.2
-Release: 1%{?dist}
+Release: 2%{?dist}
 # The entire source code is GPLv2 except for cpiofile.py which is MIT
 License: GPLv2 and MIT
 Group: Applications/System
 Source0: host-installer-%{version}.tar.gz
-
-# XCP-ng: for 8.3beta2 only
-Patch1: 0001-Prevent-upgrading-from-platform-3.4.0.patch
 
 # This is where we get 'multipath.conf' from
 BuildRequires: sm xenserver-multipath xenserver-lvm2
@@ -281,6 +278,10 @@ done
 rm -f /tmp/firmware-used.$$
 
 %changelog
+* Wed Jun 12 2024 Samuel Verschelde <stormi-xcp@ylix.fr> - 10.10.6.xcpng.2-2
+- Remove 0001-Prevent-upgrading-from-platform-3.4.0.patch
+  - Makes upgrading from 8.3 or XenServer 8 possible again
+
 * Fri Apr 26 2024 Yann Dirson <yann.dirson@vates.tech> - 10.10.16.xcpng.2-1
 - Update to v10.10.16.xcpng.2 release, bringing:
   - Make the unsupported / for-troubleshooting status of kernel-alt more obvious
