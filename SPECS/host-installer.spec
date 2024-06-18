@@ -1,14 +1,13 @@
-%global package_speccommit 5c9ac7087e1f66197be50cbefec0313348a4afd2
-%global package_srccommit v10.10.16
+%global package_speccommit 4fbe07893856eb0daf8a7347cc2ceab1b8a74a3f
+%global package_srccommit v10.10.19
 
 Summary: XenServer Installer
 Name: host-installer
-Version: 10.10.16
+Version: 10.10.19
 Release: 1%{?xsrel}%{?dist}
-# The entire source code is GPLv2 except for cpiofile.py which is MIT
-License: GPLv2 and MIT
+License: GPLv2
 Group: Applications/System
-Source0: host-installer-10.10.16.tar.gz
+Source0: host-installer-10.10.19.tar.gz
 # This is where we get 'multipath.conf' from
 BuildRequires: sm xenserver-multipath xenserver-lvm2
 BuildRequires: python-six python-mock
@@ -91,7 +90,6 @@ cp -R \
         backend.py \
         common_criteria_firewall_rules \
         constants.py \
-        cpiofile.py \
         disktools.py \
         diskutil.py \
         driver.py \
@@ -136,7 +134,7 @@ cp startup/iscsi-modules %{buildroot}%{_sysconfdir}/modules-load.d/iscsi.conf
 
 cp startup/depmod.conf %{buildroot}/etc/depmod.d/
 
-cp startup/{preinit,S05ramdisk,S06mount} %{buildroot}/%{installer_dir}/
+cp startup/{preinit,S05ramdisk} %{buildroot}/%{installer_dir}/
 
 cp startup/systemd-udevd_depmod.conf %{buildroot}/etc/systemd/system/systemd-udevd.d/installer.conf
 
@@ -180,7 +178,6 @@ rm -rf %{buildroot}
 %{installer_dir}/answerfile.py
 %{installer_dir}/backend.py
 %{installer_dir}/constants.py
-%{installer_dir}/cpiofile.py
 %{installer_dir}/disktools.py
 %{installer_dir}/diskutil.py
 %{installer_dir}/driver.py
@@ -230,7 +227,6 @@ rm -rf %{buildroot}
 /etc/init.d/*
 %{installer_dir}/preinit
 %attr(755,root,root) %{installer_dir}/S05ramdisk
-%attr(755,root,root) %{installer_dir}/S06mount
 
 %defattr(664,root,root,775)
 /etc/modprobe.d/*
@@ -285,6 +281,21 @@ done
 rm -f /tmp/firmware-used.$$
 
 %changelog
+* Thu May 23 2024 Frediano Ziglio <frediano.ziglio@cloud.com> - 10.10.19-1
+- CA-392758: Remove Firmware Boot Selected flag check
+- CP-49195: Allows to preserve first partition from MBR layout
+- CP-49641: Ignore errors mounting/unmounting explicit mount points
+
+* Thu May 16 2024 Frediano Ziglio <frediano.ziglio@cloud.com> - 10.10.18-1
+- CA-392935: Release device if partition does not need to be resized
+- CA-392916: Create directory for mount= option
+
+* Thu May 02 2024 Frediano Ziglio <frediano.ziglio@cloud.com> - 10.10.17-1
+- Better support for SDX upgrade
+- CA-391659: Set correct partition type restoring XS 7.1
+- CP-47625: Replace mkinitrd with dracut command
+- CA-391027: Mount devices specified by mount= only when needed
+
 * Wed Feb 28 2024 Gerald Elder-Vass <gerald.elder-vass@cloud.com> - 10.10.16-1
 - CA-389160: Filter secrets when logging results/answers during failures
 
