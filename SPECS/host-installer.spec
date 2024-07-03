@@ -1,9 +1,8 @@
 Summary: XenServer Installer
 Name: host-installer
-Version: 10.10.16.xcpng.2
-Release: 2%{?dist}
-# The entire source code is GPLv2 except for cpiofile.py which is MIT
-License: GPLv2 and MIT
+Version: 10.10.19.xcpng.1
+Release: 1%{?dist}
+License: GPLv2
 Group: Applications/System
 Source0: host-installer-%{version}.tar.gz
 
@@ -92,7 +91,6 @@ cp -R \
         backend.py \
         common_criteria_firewall_rules \
         constants.py \
-        cpiofile.py \
         disktools.py \
         diskutil.py \
         driver.py \
@@ -133,7 +131,7 @@ cp startup/modprobe.mlx4 %{buildroot}/etc/modprobe.d/mlx4.conf
 
 cp startup/iscsi-modules %{buildroot}%{_sysconfdir}/modules-load.d/iscsi.conf
 
-cp startup/{preinit,S05ramdisk,S06mount} %{buildroot}/%{installer_dir}/
+cp startup/{preinit,S05ramdisk} %{buildroot}/%{installer_dir}/
 
 # Generate a multipath configuration from sm's copy, removing
 # the blacklist and blacklist_exception sections.
@@ -176,7 +174,6 @@ rm -rf %{buildroot}
 %{installer_dir}/answerfile.py
 %{installer_dir}/backend.py
 %{installer_dir}/constants.py
-%{installer_dir}/cpiofile.py
 %{installer_dir}/disktools.py
 %{installer_dir}/diskutil.py
 %{installer_dir}/driver.py
@@ -226,7 +223,6 @@ rm -rf %{buildroot}
 /etc/init.d/*
 %{installer_dir}/preinit
 %attr(755,root,root) %{installer_dir}/S05ramdisk
-%attr(755,root,root) %{installer_dir}/S06mount
 
 %defattr(664,root,root,775)
 /etc/modprobe.d/*
@@ -278,6 +274,20 @@ done
 rm -f /tmp/firmware-used.$$
 
 %changelog
+* Wed Jul 03 2024 Yann Dirson <yann.dirson@vates.tech> - 10.10.19.xcpng.1-1
+- Update to v10.10.19.xcpng.1 release, bringing:
+  - #151: Fix UEFI Restore
+  - CA-392758: Remove Firmware Boot Selected flag check
+  - CP-49195: Allows to preserve first partition from MBR layout
+  - CP-49641: Ignore errors mounting/unmounting explicit mount points
+  - CA-392935: Release device if partition does not need to be resized
+  - CA-392916: Create directory for mount= option
+  - Better support for SDX upgrade
+  - CA-391659: Set correct partition type restoring XS 7.1
+  - CP-47625: Replace mkinitrd with dracut command
+  - CA-391027: Mount devices specified by mount= only when needed
+  - CA-389160: Filter secrets when logging results/answers during failures
+
 * Wed Jun 12 2024 Samuel Verschelde <stormi-xcp@ylix.fr> - 10.10.6.xcpng.2-2
 - Remove 0001-Prevent-upgrading-from-platform-3.4.0.patch
   - Makes upgrading from 8.3 or XenServer 8 possible again
