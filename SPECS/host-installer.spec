@@ -1,6 +1,6 @@
 Summary: XenServer Installer
 Name: host-installer
-Version: 10.10.19.xcpng.1
+Version: 10.10.19.xcpng.2
 Release: 1%{?dist}
 License: GPLv2
 Group: Applications/System
@@ -274,6 +274,10 @@ done
 rm -f /tmp/firmware-used.$$
 
 %changelog
+* Fri Jul 05 2024 Yann Dirson <yann.dirson@vates.tech> - 10.10.19.xcpng.2-1
+- Update to v10.10.19.xcpng.2 release, bringing:
+  - Fix installation of kernel-alt package when in kernel-alt mode
+
 * Wed Jul 03 2024 Yann Dirson <yann.dirson@vates.tech> - 10.10.19.xcpng.1-1
 - Update to v10.10.19.xcpng.1 release, bringing:
   - #151: Fix UEFI Restore
