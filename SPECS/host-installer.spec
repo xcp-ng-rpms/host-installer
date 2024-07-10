@@ -1,6 +1,6 @@
 Summary: XenServer Installer
 Name: host-installer
-Version: 10.10.19.xcpng.2
+Version: 10.10.19.xcpng.3
 Release: 1%{?dist}
 License: GPLv2
 Group: Applications/System
@@ -274,6 +274,11 @@ done
 rm -f /tmp/firmware-used.$$
 
 %changelog
+* Wed Jul 10 2024 Yann Dirson <yann.dirson@vates.tech> - 10.10.19.xcpng.3-1
+- Update to v10.10.19.xcpng.3 release, bringing:
+  - fix usage of driver disks such as intel-igb
+  - fix abusive logging at "critical" level
+
 * Fri Jul 05 2024 Yann Dirson <yann.dirson@vates.tech> - 10.10.19.xcpng.2-1
 - Update to v10.10.19.xcpng.2 release, bringing:
   - Fix installation of kernel-alt package when in kernel-alt mode
