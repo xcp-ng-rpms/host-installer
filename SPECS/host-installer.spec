@@ -1,7 +1,7 @@
 Summary: XenServer Installer
 Name: host-installer
 Version: 10.10.19.xcpng.3
-Release: 1%{?dist}
+Release: 1.0.tee.2%{?dist}
 License: GPLv2
 Group: Applications/System
 Source0: host-installer-%{version}.tar.gz
