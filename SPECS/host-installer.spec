@@ -1,6 +1,6 @@
 Summary: XenServer Installer
 Name: host-installer
-Version: 10.10.19.xcpng.3
+Version: 10.10.19.xcpng.4
 Release: 1%{?dist}
 License: GPLv2
 Group: Applications/System
@@ -274,6 +274,13 @@ done
 rm -f /tmp/firmware-used.$$
 
 %changelog
+* Thu Aug 08 2024 Yann Dirson <yann.dirson@vates.tech> - 10.10.19.xcpng.4-1
+- Update to v10.10.19.xcpng.4 release, bringing:
+  - Preserve stunnel certs
+  - Mark 'Dual Stack' as experimental
+  - Boot mode checks
+  - Misc debugging improvements
+
 * Wed Jul 10 2024 Yann Dirson <yann.dirson@vates.tech> - 10.10.19.xcpng.3-1
 - Update to v10.10.19.xcpng.3 release, bringing:
   - fix usage of driver disks such as intel-igb
