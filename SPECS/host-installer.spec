@@ -1,13 +1,13 @@
-%global package_speccommit 4fbe07893856eb0daf8a7347cc2ceab1b8a74a3f
-%global package_srccommit v10.10.19
+%global package_speccommit 3b795911e8a4ce6ed15163b19301aef22c5c0409
+%global package_srccommit v10.10.20
 
 Summary: XenServer Installer
 Name: host-installer
-Version: 10.10.19
+Version: 10.10.20
 Release: 1%{?xsrel}%{?dist}
 License: GPLv2
 Group: Applications/System
-Source0: host-installer-10.10.19.tar.gz
+Source0: host-installer-10.10.20.tar.gz
 # This is where we get 'multipath.conf' from
 BuildRequires: sm xenserver-multipath xenserver-lvm2
 BuildRequires: python-six python-mock
@@ -281,6 +281,9 @@ done
 rm -f /tmp/firmware-used.$$
 
 %changelog
+* Mon Jun 03 2024 Frediano Ziglio <frediano.ziglio@cloud.com> - 10.10.20-1
+- CA-393429: Fix upgrade to XS8 from downgraded SDX MBR installation
+
 * Thu May 23 2024 Frediano Ziglio <frediano.ziglio@cloud.com> - 10.10.19-1
 - CA-392758: Remove Firmware Boot Selected flag check
 - CP-49195: Allows to preserve first partition from MBR layout
