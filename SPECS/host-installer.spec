@@ -1,13 +1,13 @@
-%global package_speccommit 3b795911e8a4ce6ed15163b19301aef22c5c0409
-%global package_srccommit v10.10.20
+%global package_speccommit 125f858934135e7d4704406979212e87380f534b
+%global package_srccommit v10.10.22
 
 Summary: XenServer Installer
 Name: host-installer
-Version: 10.10.20
+Version: 10.10.22
 Release: 1%{?xsrel}%{?dist}
 License: GPLv2
 Group: Applications/System
-Source0: host-installer-10.10.20.tar.gz
+Source0: host-installer-10.10.22.tar.gz
 # This is where we get 'multipath.conf' from
 BuildRequires: sm xenserver-multipath xenserver-lvm2
 BuildRequires: python-six python-mock
@@ -76,94 +76,11 @@ test/test.sh
 %install
 rm -rf %{buildroot}
 
-# Installer files
-mkdir -p %{buildroot}/usr/bin
-cp support.sh %{buildroot}/usr/bin
+make install DESTDIR=%{buildroot} INSTALLER_DIR=%{installer_dir} SM_ROOTDIR=
 
-mkdir -p %{buildroot}%{installer_dir}
-cp -R \
-        tui \
-        init \
-        keymaps \
-        timezones \
-        answerfile.py \
-        backend.py \
-        common_criteria_firewall_rules \
-        constants.py \
-        disktools.py \
-        diskutil.py \
-        driver.py \
-        fcoeutil.py \
-        generalui.py \
-        hardware.py \
-        init_constants.py \
-        install.py \
-        netinterface.py \
-        netutil.py \
-        product.py \
-        report.py \
-        repository.py \
-        restore.py \
-        scripts.py \
-        shrinklvm.py \
-        snackutil.py \
-        uicontroller.py \
-        upgrade.py \
-        util.py \
-        xelogging.py \
-    %{buildroot}%{installer_dir}/
-
-# Startup files
-mkdir -p \
-    %{buildroot}/etc/init.d \
-    %{buildroot}/etc/modprobe.d \
-    %{buildroot}/etc/modules-load.d \
-    %{buildroot}/etc/depmod.d \
-    %{buildroot}/etc/dracut.conf.d \
-    %{buildroot}/etc/systemd/system/systemd-udevd.d \
-    %{buildroot}/%{feature_flag_dir}
-
-cp startup/{interface-rename-sideway,early-blacklist} %{buildroot}/etc/init.d/
-cp startup/functions %{buildroot}/etc/init.d/installer-functions
-
-cp startup/{early-blacklist.conf,bnx2x.conf} %{buildroot}/etc/modprobe.d/
-cp startup/blacklist %{buildroot}/etc/modprobe.d/installer-blacklist.conf
-cp startup/modprobe.mlx4 %{buildroot}/etc/modprobe.d/mlx4.conf
-
-cp startup/iscsi-modules %{buildroot}%{_sysconfdir}/modules-load.d/iscsi.conf
-
-cp startup/depmod.conf %{buildroot}/etc/depmod.d/
-
-cp startup/{preinit,S05ramdisk} %{buildroot}/%{installer_dir}/
-
-cp startup/systemd-udevd_depmod.conf %{buildroot}/etc/systemd/system/systemd-udevd.d/installer.conf
-
-# Generate a multipath configuration from sm's copy, removing
-# the blacklist and blacklist_exception sections.
-sed 's/\(^[[:space:]]*find_multipaths[[:space:]]*\)yes/\1no/' \
-    < /etc/multipath.xenserver/multipath.conf \
-    > %{buildroot}/etc/multipath.conf.disabled
-
-
-# bootloader files
-install -D -m644 bootloader/grub.cfg %{buildroot}%{efi_dir}/grub.cfg
-install -D -m644 bootloader/grub.cfg %{buildroot}%{efi_dir}/grub-usb.cfg
-
-sed -i '/^set timeout=[0-9]\+$/asearch --file --set /install.img' \
-    %{buildroot}%{efi_dir}/grub-usb.cfg
-
-install -D -m644 bootloader/isolinux.cfg %{buildroot}/boot/isolinux/isolinux.cfg
-
-cat >%{buildroot}/etc/dracut.conf.d/installer.conf <<EOF
-echo Skipping initrd creation in the installer
-exit 0
-EOF
-
+mkdir -p %{buildroot}/%{feature_flag_dir}
 touch %{buildroot}/%{feature_flag_dir}/supplemental-packs
 echo %{large_block_capable_sr_type} > %{buildroot}/%{feature_flag_dir}/large-block-capable-sr-type
-
-%clean
-rm -rf %{buildroot}
 
 %files
 %defattr(775,root,root,-)
@@ -188,6 +105,7 @@ rm -rf %{buildroot}
 %{installer_dir}/netinterface.py
 %{installer_dir}/netutil.py
 %{installer_dir}/product.py
+%{installer_dir}/ppexpect.py
 %{installer_dir}/repository.py
 %{installer_dir}/restore.py
 %{installer_dir}/scripts.py
@@ -281,6 +199,13 @@ done
 rm -f /tmp/firmware-used.$$
 
 %changelog
+* Tue Jul 02 2024 Frediano Ziglio <frediano.ziglio@cloud.com> - 10.10.22-1
+- Use Makefile instead of duplicating code
+
+* Thu Jun 27 2024 Frediano Ziglio <frediano.ziglio@cloud.com> - 10.10.21-1
+- CA-392317: Make sure kernel is up to date using Gdisk
+- Handle corrupted GPT data if disk is using MBR
+
 * Mon Jun 03 2024 Frediano Ziglio <frediano.ziglio@cloud.com> - 10.10.20-1
 - CA-393429: Fix upgrade to XS8 from downgraded SDX MBR installation
 
