@@ -1,6 +1,6 @@
 Summary: XenServer Installer
 Name: host-installer
-Version: 10.10.19.xcpng.4
+Version: 10.10.19.xcpng.5
 Release: 1%{?dist}
 License: GPLv2
 Group: Applications/System
@@ -274,6 +274,10 @@ done
 rm -f /tmp/firmware-used.$$
 
 %changelog
+* Wed Sep 25 2024 Yann Dirson <yann.dirson@vates.tech> - 10.10.19.xcpng.5-1
+- Update to v10.10.19.xcpng.5 release, bringing:
+  - Forbid upgrading with a key XAPI will reject
+
 * Thu Aug 08 2024 Yann Dirson <yann.dirson@vates.tech> - 10.10.19.xcpng.4-1
 - Update to v10.10.19.xcpng.4 release, bringing:
   - Preserve stunnel certs
@@ -362,7 +366,7 @@ rm -f /tmp/firmware-used.$$
   udev service start to run "depmod -a"
 - apply module-removing trigger to kernel-alt too
 
-* Tue Nov 23 2022 Yann Dirson <yann.dirson@vates.fr> - 10.10.0-1.1
+* Wed Nov 23 2022 Yann Dirson <yann.dirson@vates.fr> - 10.10.0-1.1
 - Include a diff from v10.10.0 to v10.10.3-21-g3d5df76
 
 * Mon Jun 06 2022 Mark Syms <mark.syms@citrix.com> - 10.10.0-1
