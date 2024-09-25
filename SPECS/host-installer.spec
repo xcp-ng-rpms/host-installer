@@ -362,7 +362,7 @@ rm -f /tmp/firmware-used.$$
   udev service start to run "depmod -a"
 - apply module-removing trigger to kernel-alt too
 
-* Tue Nov 23 2022 Yann Dirson <yann.dirson@vates.fr> - 10.10.0-1.1
+* Wed Nov 23 2022 Yann Dirson <yann.dirson@vates.fr> - 10.10.0-1.1
 - Include a diff from v10.10.0 to v10.10.3-21-g3d5df76
 
 * Mon Jun 06 2022 Mark Syms <mark.syms@citrix.com> - 10.10.0-1
