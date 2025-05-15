@@ -1,13 +1,13 @@
-%global package_speccommit c2ffd7c775b26f4373731491061d2413d612bec8
-%global package_srccommit v10.10.23
+%global package_speccommit 32ae77f3aefbdf2f6bb953e02548f1c2715e5dfc
+%global package_srccommit v10.10.25
 
 Summary: XenServer Installer
 Name: host-installer
-Version: 10.10.23
+Version: 10.10.25
 Release: 1%{?xsrel}%{?dist}
 License: GPLv2
 Group: Applications/System
-Source0: host-installer-10.10.23.tar.gz
+Source0: host-installer-10.10.25.tar.gz
 # This is where we get 'multipath.conf' from
 BuildRequires: sm xenserver-multipath xenserver-lvm2
 BuildRequires: python-six python-mock
@@ -199,6 +199,13 @@ done
 rm -f /tmp/firmware-used.$$
 
 %changelog
+* Fri Dec 06 2024 Frediano Ziglio <frediano.ziglio@cloud.com> - 10.10.25-1
+- CA-403412: Do not backup GPT layout on temporary directory
+
+* Thu Nov 28 2024 Frediano Ziglio <frediano.ziglio@cloud.com> - 10.10.24-1
+- CP-51858: Support upgrades for SDX 8900 platform
+- CP-51857: Support clean install for SDX 8900 platform
+
 * Mon Jul 22 2024 Ross Lagerwall <ross.lagerwall@citrix.com> - 10.10.23-1
 - CA-395582: Fix installation with multipath enabled
 
