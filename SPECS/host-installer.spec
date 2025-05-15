@@ -1,3 +1,6 @@
+# XCP-ng build condition, we don't ship depmod config
+%bcond_with depmod
+
 Summary: XenServer Installer
 Name: host-installer
 Version: 10.10.29.xcpng.1
@@ -79,11 +82,12 @@ test/test.sh
 rm -rf %{buildroot}
 
 make install DESTDIR=%{buildroot} INSTALLER_DIR=%{installer_dir} SM_ROOTDIR=
-
-# XCP-ng: Stop messing with depmod
+%if %{without depmod}
+# Stop messing with depmod
 rm %{buildroot}/etc/depmod.d/depmod.conf
 rm %{buildroot}/etc/systemd/system/systemd-udevd.d/installer.conf
 rmdir %{buildroot}/etc/depmod.d/ %{buildroot}/etc/systemd/system/systemd-udevd.d/
+%endif
 
 mkdir -p %{buildroot}/%{feature_flag_dir}
 # XCP-ng: no supplemental packs feature
@@ -157,6 +161,11 @@ echo %{large_block_capable_sr_type} > %{buildroot}/%{feature_flag_dir}/large-blo
 %defattr(664,root,root,775)
 /etc/modprobe.d/*
 /etc/modules-load.d/iscsi.conf
+%if %{with depmod}
+/etc/depmod.d/depmod.conf
+
+/etc/systemd/system/*/installer.conf
+%endif
 
 %doc
 
