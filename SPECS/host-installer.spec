@@ -275,15 +275,22 @@ rm -f /tmp/firmware-used.$$
 * Wed Jul 03 2024 Yann Dirson <yann.dirson@vates.tech> - 10.10.19.xcpng.1-1
 - Update to v10.10.19.xcpng.1 release, bringing:
   - #151: Fix UEFI Restore
+  * Thu May 23 2024 Frediano Ziglio <frediano.ziglio@cloud.com> - 10.10.19-1
   - CA-392758: Remove Firmware Boot Selected flag check
   - CP-49195: Allows to preserve first partition from MBR layout
   - CP-49641: Ignore errors mounting/unmounting explicit mount points
+
+  * Thu May 16 2024 Frediano Ziglio <frediano.ziglio@cloud.com> - 10.10.18-1
   - CA-392935: Release device if partition does not need to be resized
   - CA-392916: Create directory for mount= option
+
+  * Thu May 02 2024 Frediano Ziglio <frediano.ziglio@cloud.com> - 10.10.17-1
   - Better support for SDX upgrade
   - CA-391659: Set correct partition type restoring XS 7.1
   - CP-47625: Replace mkinitrd with dracut command
   - CA-391027: Mount devices specified by mount= only when needed
+
+  * Wed Feb 28 2024 Gerald Elder-Vass <gerald.elder-vass@cloud.com> - 10.10.16-1
   - CA-389160: Filter secrets when logging results/answers during failures
 
 * Wed Jun 12 2024 Samuel Verschelde <stormi-xcp@ylix.fr> - 10.10.6.xcpng.2-2
