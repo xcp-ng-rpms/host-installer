@@ -1,13 +1,13 @@
-%global package_speccommit 32ae77f3aefbdf2f6bb953e02548f1c2715e5dfc
-%global package_srccommit v10.10.25
+%global package_speccommit 9eb72bbe36a857d51657e189eb6ee15827941fc4
+%global package_srccommit v10.10.28
 
 Summary: XenServer Installer
 Name: host-installer
-Version: 10.10.25
+Version: 10.10.28
 Release: 1%{?xsrel}%{?dist}
 License: GPLv2
 Group: Applications/System
-Source0: host-installer-10.10.25.tar.gz
+Source0: host-installer-10.10.28.tar.gz
 # This is where we get 'multipath.conf' from
 BuildRequires: sm xenserver-multipath xenserver-lvm2
 BuildRequires: python-six python-mock
@@ -199,6 +199,23 @@ done
 rm -f /tmp/firmware-used.$$
 
 %changelog
+* Mon Apr 07 2025 Gerald Elder-Vass <gerald.elder-vass@cloud.com> - 10.10.28-1
+- XSI-1863: Use a disk size of zero if a disk size cannot be determined
+- doc/answerfile: reduce admin-interface confusion
+- Avoid attempting to re-read inventory file from unmounted partition
+- __mkinitrd: pass -f to dracut
+- doc/answerfile: clarify and fix description of --network_device
+- Makefile: give more flexibility to select base multipath.conf
+- CP-47621: Enable ability to set hostname from DHCP
+
+* Wed Mar 12 2025 Deli Zhang <deli.zhang@cloud.com> - 10.10.27-1
+- CA-400058: Revert "Fix preserve-first-partition installation"
+- CA-407867: Add missed "attr" parameter to restore_file()
+
+* Wed Mar 05 2025 Deli Zhang <deli.zhang@cloud.com> - 10.10.26-1
+- CP-50298: Support restoring dir to specified mode and user/group attributes
+- CA-400058: Fix preserve-first-partition installation
+
 * Fri Dec 06 2024 Frediano Ziglio <frediano.ziglio@cloud.com> - 10.10.25-1
 - CA-403412: Do not backup GPT layout on temporary directory
 
