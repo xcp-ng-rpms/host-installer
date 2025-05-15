@@ -1,13 +1,13 @@
-%global package_speccommit 9eb72bbe36a857d51657e189eb6ee15827941fc4
-%global package_srccommit v10.10.28
+%global package_speccommit ce147fbbc5c6f4b1b73803dcdfa74148b2af8cf3
+%global package_srccommit v10.10.29
 
 Summary: XenServer Installer
 Name: host-installer
-Version: 10.10.28
+Version: 10.10.29
 Release: 1%{?xsrel}%{?dist}
 License: GPLv2
 Group: Applications/System
-Source0: host-installer-10.10.28.tar.gz
+Source0: host-installer-10.10.29.tar.gz
 # This is where we get 'multipath.conf' from
 BuildRequires: sm xenserver-multipath xenserver-lvm2
 BuildRequires: python-six python-mock
@@ -199,6 +199,9 @@ done
 rm -f /tmp/firmware-used.$$
 
 %changelog
+* Tue Apr 29 2025 Frediano Ziglio <frediano.ziglio@cloud.com> - 10.10.28-1
+- CA-409996: Fix manual upgrade
+
 * Mon Apr 07 2025 Gerald Elder-Vass <gerald.elder-vass@cloud.com> - 10.10.28-1
 - XSI-1863: Use a disk size of zero if a disk size cannot be determined
 - doc/answerfile: reduce admin-interface confusion
