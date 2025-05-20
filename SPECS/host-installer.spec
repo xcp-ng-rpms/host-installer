@@ -1,7 +1,10 @@
+# XCP-ng build condition, we don't ship depmod config
+%bcond_with depmod
+
 Summary: XenServer Installer
 Name: host-installer
-Version: 10.10.19.xcpng.5
-Release: 2%{?dist}
+Version: 10.10.29.xcpng.1
+Release: 1%{?dist}
 License: GPLv2
 Group: Applications/System
 Source0: host-installer-%{version}.tar.gz
@@ -78,89 +81,18 @@ test/test.sh
 %install
 rm -rf %{buildroot}
 
-# Installer files
-mkdir -p %{buildroot}/usr/bin
-cp support.sh %{buildroot}/usr/bin
+make install DESTDIR=%{buildroot} INSTALLER_DIR=%{installer_dir} SM_ROOTDIR=
+%if %{without depmod}
+# Stop messing with depmod
+rm %{buildroot}/etc/depmod.d/depmod.conf
+rm %{buildroot}/etc/systemd/system/systemd-udevd.d/installer.conf
+rmdir %{buildroot}/etc/depmod.d/ %{buildroot}/etc/systemd/system/systemd-udevd.d/
+%endif
 
-mkdir -p %{buildroot}%{installer_dir}
-cp -R \
-        tui \
-        init \
-        keymaps \
-        timezones \
-        answerfile.py \
-        backend.py \
-        common_criteria_firewall_rules \
-        constants.py \
-        disktools.py \
-        diskutil.py \
-        driver.py \
-        fcoeutil.py \
-        generalui.py \
-        hardware.py \
-        init_constants.py \
-        install.py \
-        netinterface.py \
-        netutil.py \
-        product.py \
-        report.py \
-        repository.py \
-        restore.py \
-        scripts.py \
-        shrinklvm.py \
-        snackutil.py \
-        uicontroller.py \
-        upgrade.py \
-        util.py \
-        xelogging.py \
-    %{buildroot}%{installer_dir}/
-
-# Startup files
-mkdir -p \
-    %{buildroot}/etc/init.d \
-    %{buildroot}/etc/modprobe.d \
-    %{buildroot}/etc/modules-load.d \
-    %{buildroot}/etc/dracut.conf.d \
-    %{buildroot}/%{feature_flag_dir}
-
-cp startup/{interface-rename-sideway,early-blacklist} %{buildroot}/etc/init.d/
-cp startup/functions %{buildroot}/etc/init.d/installer-functions
-
-cp startup/{early-blacklist.conf,bnx2x.conf} %{buildroot}/etc/modprobe.d/
-cp startup/blacklist %{buildroot}/etc/modprobe.d/installer-blacklist.conf
-cp startup/modprobe.mlx4 %{buildroot}/etc/modprobe.d/mlx4.conf
-
-cp startup/iscsi-modules %{buildroot}%{_sysconfdir}/modules-load.d/iscsi.conf
-
-cp startup/{preinit,S05ramdisk} %{buildroot}/%{installer_dir}/
-
-# Generate a multipath configuration from sm's copy, removing
-# the blacklist and blacklist_exception sections.
-sed 's/\(^[[:space:]]*find_multipaths[[:space:]]*\)yes/\1no/' \
-    < /etc/multipath.xenserver/multipath.conf \
-    > %{buildroot}/etc/multipath.conf.disabled
-
-
-# bootloader files
-install -D -m644 bootloader/grub.cfg %{buildroot}%{efi_dir}/grub.cfg
-install -D -m644 bootloader/grub.cfg %{buildroot}%{efi_dir}/grub-usb.cfg
-
-sed -i '/^set timeout=[0-9]\+$/asearch --file --set /install.img' \
-    %{buildroot}%{efi_dir}/grub-usb.cfg
-
-install -D -m644 bootloader/isolinux.cfg %{buildroot}/boot/isolinux/isolinux.cfg
-
-cat >%{buildroot}/etc/dracut.conf.d/installer.conf <<EOF
-echo Skipping initrd creation in the installer
-exit 0
-EOF
-
+mkdir -p %{buildroot}/%{feature_flag_dir}
 # XCP-ng: no supplemental packs feature
 # touch %{buildroot}/%{feature_flag_dir}/supplemental-packs
 echo %{large_block_capable_sr_type} > %{buildroot}/%{feature_flag_dir}/large-block-capable-sr-type
-
-%clean
-rm -rf %{buildroot}
 
 %files
 %defattr(775,root,root,-)
@@ -185,6 +117,7 @@ rm -rf %{buildroot}
 %{installer_dir}/netinterface.py
 %{installer_dir}/netutil.py
 %{installer_dir}/product.py
+%{installer_dir}/ppexpect.py
 %{installer_dir}/repository.py
 %{installer_dir}/restore.py
 %{installer_dir}/scripts.py
@@ -228,6 +161,11 @@ rm -rf %{buildroot}
 %defattr(664,root,root,775)
 /etc/modprobe.d/*
 /etc/modules-load.d/iscsi.conf
+%if %{with depmod}
+/etc/depmod.d/depmod.conf
+
+/etc/systemd/system/*/installer.conf
+%endif
 
 %doc
 
@@ -275,6 +213,51 @@ done
 rm -f /tmp/firmware-used.$$
 
 %changelog
+* Thu May 15 2025 Yann Dirson <yann.dirson@vates.tech> - 10.10.29.xcpng.1-1
+- Update to v10.10.29.xcpng.1 release
+- Reintroduced differently the "Stop messing with depmod" changes from 10.10.5.xcpng.1-1,
+  now that a Makefile is used
+- Sync with xenserver 10.10.29-1:
+  * Tue Apr 29 2025 Frediano Ziglio <frediano.ziglio@cloud.com> - 10.10.28-1
+  - CA-409996: Fix manual upgrade
+
+  * Mon Apr 07 2025 Gerald Elder-Vass <gerald.elder-vass@cloud.com> - 10.10.28-1
+  - XSI-1863: Use a disk size of zero if a disk size cannot be determined
+  - doc/answerfile: reduce admin-interface confusion
+  - Avoid attempting to re-read inventory file from unmounted partition
+  - __mkinitrd: pass -f to dracut
+  - doc/answerfile: clarify and fix description of --network_device
+  - Makefile: give more flexibility to select base multipath.conf
+  - CP-47621: Enable ability to set hostname from DHCP
+
+  * Wed Mar 12 2025 Deli Zhang <deli.zhang@cloud.com> - 10.10.27-1
+  - CA-400058: Revert "Fix preserve-first-partition installation"
+  - CA-407867: Add missed "attr" parameter to restore_file()
+
+  * Wed Mar 05 2025 Deli Zhang <deli.zhang@cloud.com> - 10.10.26-1
+  - CP-50298: Support restoring dir to specified mode and user/group attributes
+  - CA-400058: Fix preserve-first-partition installation
+
+  * Fri Dec 06 2024 Frediano Ziglio <frediano.ziglio@cloud.com> - 10.10.25-1
+  - CA-403412: Do not backup GPT layout on temporary directory
+
+  * Thu Nov 28 2024 Frediano Ziglio <frediano.ziglio@cloud.com> - 10.10.24-1
+  - CP-51858: Support upgrades for SDX 8900 platform
+  - CP-51857: Support clean install for SDX 8900 platform
+
+  * Mon Jul 22 2024 Ross Lagerwall <ross.lagerwall@citrix.com> - 10.10.23-1
+  - CA-395582: Fix installation with multipath enabled
+
+  * Tue Jul 02 2024 Frediano Ziglio <frediano.ziglio@cloud.com> - 10.10.22-1
+  - Use Makefile instead of duplicating code
+
+  * Thu Jun 27 2024 Frediano Ziglio <frediano.ziglio@cloud.com> - 10.10.21-1
+  - CA-392317: Make sure kernel is up to date using Gdisk
+  - Handle corrupted GPT data if disk is using MBR
+
+  * Mon Jun 03 2024 Frediano Ziglio <frediano.ziglio@cloud.com> - 10.10.20-1
+  - CA-393429: Fix upgrade to XS8 from downgraded SDX MBR installation
+
 * Thu Sep 26 2024 Yann Dirson <yann.dirson@vates.tech> - 10.10.19.xcpng.5-2
 - Add missing dependency on pyOpenSSL
 
@@ -301,15 +284,22 @@ rm -f /tmp/firmware-used.$$
 * Wed Jul 03 2024 Yann Dirson <yann.dirson@vates.tech> - 10.10.19.xcpng.1-1
 - Update to v10.10.19.xcpng.1 release, bringing:
   - #151: Fix UEFI Restore
+  * Thu May 23 2024 Frediano Ziglio <frediano.ziglio@cloud.com> - 10.10.19-1
   - CA-392758: Remove Firmware Boot Selected flag check
   - CP-49195: Allows to preserve first partition from MBR layout
   - CP-49641: Ignore errors mounting/unmounting explicit mount points
+
+  * Thu May 16 2024 Frediano Ziglio <frediano.ziglio@cloud.com> - 10.10.18-1
   - CA-392935: Release device if partition does not need to be resized
   - CA-392916: Create directory for mount= option
+
+  * Thu May 02 2024 Frediano Ziglio <frediano.ziglio@cloud.com> - 10.10.17-1
   - Better support for SDX upgrade
   - CA-391659: Set correct partition type restoring XS 7.1
   - CP-47625: Replace mkinitrd with dracut command
   - CA-391027: Mount devices specified by mount= only when needed
+
+  * Wed Feb 28 2024 Gerald Elder-Vass <gerald.elder-vass@cloud.com> - 10.10.16-1
   - CA-389160: Filter secrets when logging results/answers during failures
 
 * Wed Jun 12 2024 Samuel Verschelde <stormi-xcp@ylix.fr> - 10.10.6.xcpng.2-2
