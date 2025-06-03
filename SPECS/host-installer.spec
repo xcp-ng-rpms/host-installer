@@ -3,7 +3,7 @@
 
 Summary: XenServer Installer
 Name: host-installer
-Version: 10.10.29.xcpng.1
+Version: 10.10.29.xcpng.2
 Release: 1%{?dist}
 License: GPLv2
 Group: Applications/System
@@ -213,6 +213,12 @@ done
 rm -f /tmp/firmware-used.$$
 
 %changelog
+* Tue Jun 03 2025 Yann Dirson <yann.dirson@vates.tech> - 10.10.29.xcpng.2-1
+- Update to v10.10.29.xcpng.2 release:
+  - Be aware of LINSTOR being installed and make sure the proper version
+    is available in the upgrade
+  - Fix upgrade of hosts using static IPv6 for management interface
+
 * Thu May 15 2025 Yann Dirson <yann.dirson@vates.tech> - 10.10.29.xcpng.1-1
 - Update to v10.10.29.xcpng.1 release
 - Reintroduced differently the "Stop messing with depmod" changes from 10.10.5.xcpng.1-1,
