@@ -3,8 +3,8 @@
 
 Summary: XenServer Installer
 Name: host-installer
-Version: 10.10.29.xcpng.2
-Release: 2%{?dist}
+Version: 10.10.29.xcpng.3
+Release: 1%{?dist}
 License: GPLv2
 Group: Applications/System
 Source0: host-installer-%{version}.tar.gz
@@ -216,6 +216,10 @@ done
 rm -f /tmp/firmware-used.$$
 
 %changelog
+* Tue Jun 04 2025 Yann Dirson <yann.dirson@vates.tech> - 10.10.29.xcpng.3-1
+- Update to v10.10.29.xcpng.3 release:
+  - Don't ask repoquery to check signed repos, it cannot do that
+
 * Tue Jun 04 2025 Yann Dirson <yann.dirson@vates.tech> - 10.10.29.xcpng.2-2
 - Add missing Requires: yum-utils, necessary to handle LINSTOR upgrades
 
