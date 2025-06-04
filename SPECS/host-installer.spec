@@ -4,7 +4,7 @@
 Summary: XenServer Installer
 Name: host-installer
 Version: 10.10.29.xcpng.2
-Release: 1%{?dist}
+Release: 2%{?dist}
 License: GPLv2
 Group: Applications/System
 Source0: host-installer-%{version}.tar.gz
@@ -35,6 +35,9 @@ Requires: ndisc6
 
 Requires: python-six
 Requires: pyOpenSSL
+
+# LINSTOR
+Requires: yum-utils
 
 Requires(post): initscripts
 
@@ -213,6 +216,9 @@ done
 rm -f /tmp/firmware-used.$$
 
 %changelog
+* Tue Jun 04 2025 Yann Dirson <yann.dirson@vates.tech> - 10.10.29.xcpng.2-2
+- Add missing Requires: yum-utils, necessary to handle LINSTOR upgrades
+
 * Tue Jun 03 2025 Yann Dirson <yann.dirson@vates.tech> - 10.10.29.xcpng.2-1
 - Update to v10.10.29.xcpng.2 release:
   - Be aware of LINSTOR being installed and make sure the proper version
