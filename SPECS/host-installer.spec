@@ -11,10 +11,10 @@ Source0: host-installer-%{version}.tar.gz
 
 BuildArch: noarch
 # This is where we get 'multipath.conf' from
-BuildRequires: xenserver-multipath xenserver-lvm2
+BuildRequires: device-mapper-multipath
 
 Requires: python-unversioned-command
-Requires: xenserver-multipath xenserver-lvm2 iscsi-initiator-utils
+Requires: device-mapper-multipath lvm2 iscsi-initiator-utils
 
 # For network management
 Requires: systemd-networkd
@@ -88,12 +88,13 @@ test/test.sh
 rm -rf %{buildroot}
 
 # Installer files
-make DESTDIR=%{buildroot} install
+make DESTDIR=%{buildroot} install \
+     XS_MPATH_CONF=/usr/share/doc/device-mapper-multipath/multipath.conf
+
 %if %{without depmod}
 # Stop messing with depmod
-rm %{buildroot}/etc/depmod.d/depmod.conf
 rm %{buildroot}/etc/systemd/system/systemd-udevd.d/installer.conf
-rmdir %{buildroot}/etc/depmod.d/ %{buildroot}/etc/systemd/system/systemd-udevd.d/
+rmdir %{buildroot}/etc/systemd/system/systemd-udevd.d/
 %endif
 
 # Install feature flags
@@ -194,6 +195,9 @@ echo %{large_block_capable_sr_type} > %{buildroot}/%{feature_flag_dir}/large-blo
 %changelog
 * Tue Nov 03 2026 Yann Dirson <yann.dirson@vates.tech> - 11.2.0-1.1
 - Update to v11.2.0-1 xenserver release
+- TEMP HACK remove dependency on device-mapper-multipath, which needs work
+- TEMP HACK depend on lvm2 not xenserver-lvm2, which needs work
+- TEMP HACK point to some multipath.conf so "make install" passes
 - Upstream changelog (since v10.10.8-3):
   * Fri Sep 04 2026 Tim Smith <tim.smith@citrix.com> - 11.2.0-1
   - Remove mcelog configuration
