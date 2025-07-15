@@ -10,11 +10,11 @@ Group: Applications/System
 Source0: host-installer-%{version}.tar.gz
 
 # This is where we get 'multipath.conf' from
-BuildRequires: sm xenserver-multipath xenserver-lvm2
+BuildRequires: device-mapper-multipath
 BuildRequires: python-six python-mock
 BuildRequires: python3-xcp-libs
 
-Requires: xenserver-multipath xenserver-lvm2 iscsi-initiator-utils
+Requires: device-mapper-multipath lvm2 iscsi-initiator-utils
 
 # partitioning tools
 Requires: gdisk kpartx e2fsprogs dosfstools
@@ -85,7 +85,8 @@ XenServer installer bootloader files
 %install
 rm -rf %{buildroot}
 
-make install DESTDIR=%{buildroot} INSTALLER_DIR=%{installer_dir} SM_ROOTDIR=
+make install DESTDIR=%{buildroot} INSTALLER_DIR=%{installer_dir} SM_ROOTDIR= \
+     XS_MPATH_CONF=/usr/share/doc/device-mapper-multipath/multipath.conf
 rm %{buildroot}/etc/systemd/system/systemd-udevd.d/installer.conf
 
 mkdir -p %{buildroot}/%{feature_flag_dir}
@@ -219,6 +220,9 @@ rm -f /tmp/firmware-used.$$
 - Build for Alma 10:
   - Updated deps to python3-xcp-libs
   - Explicitly disable debug_package
+- TEMP HACK remove dependency on device-mapper-multipath, which needs work
+- TEMP HACK depend on lvm2 not xenserver-lvm2, which needs work
+- TEMP HACK point to some multipath.conf so "make install" passes
 
 * Tue Jun 04 2025 Yann Dirson <yann.dirson@vates.tech> - 10.10.29.xcpng.3-1
 - Update to v10.10.29.xcpng.3 release:
