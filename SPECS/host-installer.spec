@@ -20,7 +20,7 @@ Requires: device-mapper-multipath lvm2 iscsi-initiator-utils
 Requires: gdisk kpartx e2fsprogs dosfstools
 
 # CUI interface
-Requires: newt-python newt
+Requires: python3-newt newt
 Requires: ethtool sdparm pciutils eject net-tools xenserver-biosdevname
 Requires: python3-xcp-libs python-simplejson
 
@@ -36,8 +36,8 @@ Requires: ndisc6
 Requires: python-six
 Requires: pyOpenSSL
 
-# LINSTOR
-Requires: yum-utils
+# LINSTOR (needs repoquery)
+Requires: dnf
 
 Requires(post): initscripts
 
@@ -220,6 +220,7 @@ rm -f /tmp/firmware-used.$$
 - Build for Alma 10:
   - Updated deps to python3-xcp-libs
   - Explicitly disable debug_package
+  - Uses dnf not yum
 - TEMP HACK remove dependency on device-mapper-multipath, which needs work
 - TEMP HACK depend on lvm2 not xenserver-lvm2, which needs work
 - TEMP HACK point to some multipath.conf so "make install" passes
