@@ -3,8 +3,8 @@
 
 Summary: XenServer Installer
 Name: host-installer
-Version: 10.10.29.xcpng.3
-Release: 1%{?dist}
+Version: 11.0.26
+Release: 0.ydi.1%{?dist}
 License: GPLv2
 Group: Applications/System
 Source0: host-installer-%{version}.tar.gz
@@ -12,7 +12,7 @@ Source0: host-installer-%{version}.tar.gz
 # This is where we get 'multipath.conf' from
 BuildRequires: sm xenserver-multipath xenserver-lvm2
 BuildRequires: python-six python-mock
-BuildRequires: xcp-python-libs
+BuildRequires: python3-xcp-libs
 
 Requires: xenserver-multipath xenserver-lvm2 iscsi-initiator-utils
 
@@ -22,7 +22,7 @@ Requires: gdisk kpartx e2fsprogs dosfstools
 # CUI interface
 Requires: newt-python newt
 Requires: ethtool sdparm pciutils eject net-tools xenserver-biosdevname
-Requires: xcp-python-libs python-simplejson
+Requires: python3-xcp-libs python-simplejson
 
 # archives used
 Requires: bzip2 tar gzip rpm
@@ -73,24 +73,20 @@ Requires: host-installer
 %description bootloader
 XenServer installer bootloader files
 
+%global debug_package %{nil}
 %prep
 %autosetup -p1
 
 %build
 
-%check
-test/test.sh
+# %check
+# test/test.sh
 
 %install
 rm -rf %{buildroot}
 
 make install DESTDIR=%{buildroot} INSTALLER_DIR=%{installer_dir} SM_ROOTDIR=
-%if %{without depmod}
-# Stop messing with depmod
-rm %{buildroot}/etc/depmod.d/depmod.conf
 rm %{buildroot}/etc/systemd/system/systemd-udevd.d/installer.conf
-rmdir %{buildroot}/etc/depmod.d/ %{buildroot}/etc/systemd/system/systemd-udevd.d/
-%endif
 
 mkdir -p %{buildroot}/%{feature_flag_dir}
 # XCP-ng: no supplemental packs feature
@@ -112,7 +108,9 @@ echo %{large_block_capable_sr_type} > %{buildroot}/%{feature_flag_dir}/large-blo
 %{installer_dir}/constants.py
 %{installer_dir}/disktools.py
 %{installer_dir}/diskutil.py
+%{installer_dir}/dmvutil.py
 %{installer_dir}/driver.py
+%{installer_dir}/functions
 %{installer_dir}/generalui.py
 %{installer_dir}/hardware.py
 %{installer_dir}/init_constants.py
@@ -120,11 +118,9 @@ echo %{large_block_capable_sr_type} > %{buildroot}/%{feature_flag_dir}/large-blo
 %{installer_dir}/netinterface.py
 %{installer_dir}/netutil.py
 %{installer_dir}/product.py
-%{installer_dir}/ppexpect.py
 %{installer_dir}/repository.py
 %{installer_dir}/restore.py
 %{installer_dir}/scripts.py
-%{installer_dir}/shrinklvm.py
 %{installer_dir}/snackutil.py
 %{installer_dir}/uicontroller.py
 %{installer_dir}/upgrade.py
@@ -142,6 +138,9 @@ echo %{large_block_capable_sr_type} > %{buildroot}/%{feature_flag_dir}/large-blo
 %{installer_dir}/tui/repo.py
 %{installer_dir}/tui/fcoe.py
 
+%{installer_dir}/interface-rename-sideway
+/usr/lib/systemd/system/interface-rename-sideway.service
+
 # Data
 %{installer_dir}/common_criteria_firewall_rules
 %{installer_dir}/keymaps
@@ -157,18 +156,12 @@ echo %{large_block_capable_sr_type} > %{buildroot}/%{feature_flag_dir}/large-blo
 %files startup
 %defattr(775,root,root,-)
 
-/etc/init.d/*
 %{installer_dir}/preinit
 %attr(755,root,root) %{installer_dir}/S05ramdisk
 
 %defattr(664,root,root,775)
 /etc/modprobe.d/*
 /etc/modules-load.d/iscsi.conf
-%if %{with depmod}
-/etc/depmod.d/depmod.conf
-
-/etc/systemd/system/*/installer.conf
-%endif
 
 %doc
 
@@ -176,7 +169,7 @@ echo %{large_block_capable_sr_type} > %{buildroot}/%{feature_flag_dir}/large-blo
 %defattr(444,root,root,-)
 %{efi_dir}/grub.cfg
 %{efi_dir}/grub-usb.cfg
-/boot/isolinux/isolinux.cfg
+#/boot/isolinux/isolinux.cfg
 
 %post
 # these are started by the installer
@@ -216,6 +209,17 @@ done
 rm -f /tmp/firmware-used.$$
 
 %changelog
+* Tue Jul 15 2025 Yann Dirson <yann.dirson@vates.tech> - 11.0.26-0.ydi.1
+- Update to v11.0.26
+  - Upstream stopped messing with depmod, follow suit (still have to remove
+    systemd-udevd.d/installer.conf)
+  - Upstream master does not have tests
+  - Upstream dropped booting using BIOS with isolinux
+  - Now ships interface-rename-sideway service
+- Build for Alma 10:
+  - Updated deps to python3-xcp-libs
+  - Explicitly disable debug_package
+
 * Tue Jun 04 2025 Yann Dirson <yann.dirson@vates.tech> - 10.10.29.xcpng.3-1
 - Update to v10.10.29.xcpng.3 release:
   - Don't ask repoquery to check signed repos, it cannot do that
