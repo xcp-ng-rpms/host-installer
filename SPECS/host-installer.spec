@@ -4,7 +4,7 @@
 Summary: XenServer Installer
 Name: host-installer
 Version: 11.0.26
-Release: 0.ydi.1%{?dist}
+Release: 0.ydi.3%{?dist}
 License: GPLv2
 Group: Applications/System
 Source0: host-installer-%{version}.tar.gz
@@ -101,6 +101,7 @@ echo %{large_block_capable_sr_type} > %{buildroot}/%{feature_flag_dir}/large-blo
 %{installer_dir}/init
 %{installer_dir}/report.py
 /usr/bin/support.sh
+%{installer_dir}/interface-rename-sideway
 
 %defattr(664,root,root,775)
 # Installer gubbins
@@ -139,7 +140,6 @@ echo %{large_block_capable_sr_type} > %{buildroot}/%{feature_flag_dir}/large-blo
 %{installer_dir}/tui/repo.py
 %{installer_dir}/tui/fcoe.py
 
-%{installer_dir}/interface-rename-sideway
 /usr/lib/systemd/system/interface-rename-sideway.service
 
 # Data
@@ -210,7 +210,7 @@ done
 rm -f /tmp/firmware-used.$$
 
 %changelog
-* Tue Jul 15 2025 Yann Dirson <yann.dirson@vates.tech> - 11.0.26-0.ydi.1
+* Tue Jul 15 2025 Yann Dirson <yann.dirson@vates.tech> - 11.0.26-0.ydi.3
 - Update to v11.0.26
   - Upstream stopped messing with depmod, follow suit (still have to remove
     systemd-udevd.d/installer.conf)
