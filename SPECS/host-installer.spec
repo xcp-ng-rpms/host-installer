@@ -4,10 +4,22 @@
 Summary: XenServer Installer
 Name: host-installer
 Version: 11.0.26
-Release: 0.ydi.3%{?dist}
+Release: 0.ydi.4%{?dist}
 License: GPLv2
 Group: Applications/System
 Source0: host-installer-%{version}.tar.gz
+
+# backpotr feature/host-netdev-order
+Patch00: 0001-CP-54081-Remove-interface-rename-sideway-service.patch
+Patch01: 0002-CP-53716-Drop-ordering-and-renaming-network-interfac.patch
+Patch02: 0003-CP-53716-Drop-ordering-and-renaming-network-interfac.patch
+Patch03: 0004-CP-53716-Minor-refine-for-comments.patch
+Patch04: 0005-CP-53840-Do-not-write-mgmt-interface-info-in-xensour.patch
+Patch05: 0006-CA-410647-Displaying-select-network-interface-should.patch
+Patch06: 0007-CP-54444-Remove-interface-rename-logic-for-legacy-up.patch
+Patch07: 0008-CP-54444-Use-MAC-addresses-to-find-out-the-mgmt-inte.patch
+Patch08: 0009-CP-54444-In-upgrade-convert-interface-rename-data-fo.patch
+Patch09: 0010-CP-307931-Remove-unused-net-admin-interface-key.patch
 
 # This is where we get 'multipath.conf' from
 BuildRequires: device-mapper-multipath
@@ -101,7 +113,6 @@ echo %{large_block_capable_sr_type} > %{buildroot}/%{feature_flag_dir}/large-blo
 %{installer_dir}/init
 %{installer_dir}/report.py
 /usr/bin/support.sh
-%{installer_dir}/interface-rename-sideway
 
 %defattr(664,root,root,775)
 # Installer gubbins
@@ -139,8 +150,6 @@ echo %{large_block_capable_sr_type} > %{buildroot}/%{feature_flag_dir}/large-blo
 %{installer_dir}/tui/progress.py
 %{installer_dir}/tui/repo.py
 %{installer_dir}/tui/fcoe.py
-
-/usr/lib/systemd/system/interface-rename-sideway.service
 
 # Data
 %{installer_dir}/common_criteria_firewall_rules
@@ -221,6 +230,7 @@ rm -f /tmp/firmware-used.$$
   - Updated deps to python3-xcp-libs
   - Explicitly disable debug_package
   - Uses dnf not yum
+- Imported patches from feature/host-netdev-order
 - TEMP HACK remove dependency on device-mapper-multipath, which needs work
 - TEMP HACK depend on lvm2 not xenserver-lvm2, which needs work
 - TEMP HACK point to some multipath.conf so "make install" passes
