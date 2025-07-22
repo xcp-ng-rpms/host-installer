@@ -4,7 +4,7 @@
 Summary: XenServer Installer
 Name: host-installer
 Version: 11.0.26
-Release: 0.ydi.7%{?dist}
+Release: 0.ydi.8%{?dist}
 License: GPLv2
 Group: Applications/System
 Source0: host-installer-%{version}.tar.gz
@@ -23,6 +23,9 @@ Patch09: 0010-CP-307931-Remove-unused-net-admin-interface-key.patch
 
 # pr#278
 Patch20: 0001-Force-switch-tty-to-UTF-8-not-ISO-8859-1.patch
+
+# Mandatory patches from XCP-ng 8.3
+Patch1000: 0001-Use-xcp-ng-deps-instead-of-groups.xml.patch
 
 # This is where we get 'multipath.conf' from
 BuildRequires: device-mapper-multipath
@@ -221,13 +224,15 @@ done
 rm -f /tmp/firmware-used.$$
 
 %changelog
-* Tue Jul 15 2025 Yann Dirson <yann.dirson@vates.tech> - 11.0.26-0.ydi.7
+* Tue Jul 15 2025 Yann Dirson <yann.dirson@vates.tech> - 11.0.26-0.ydi.8
 - Update to v11.0.26
   - Upstream stopped messing with depmod, follow suit (still have to remove
     systemd-udevd.d/installer.conf)
   - Upstream master does not have tests
   - Upstream dropped booting using BIOS with isolinux
   - Now ships interface-rename-sideway service
+  - Pick limited number of 8.3 patches for now:
+    - xcp-ng-deps not packagegroups (possibly to reconsider)
 - Build for Alma 10:
   - Updated deps to python3-xcp-libs
   - Explicitly disable debug_package
