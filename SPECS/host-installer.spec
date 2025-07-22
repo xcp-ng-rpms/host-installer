@@ -4,12 +4,12 @@
 Summary: XenServer Installer
 Name: host-installer
 Version: 11.0.26
-Release: 0.ydi.4%{?dist}
+Release: 0.ydi.7%{?dist}
 License: GPLv2
 Group: Applications/System
 Source0: host-installer-%{version}.tar.gz
 
-# backpotr feature/host-netdev-order
+# backport feature/host-netdev-order
 Patch00: 0001-CP-54081-Remove-interface-rename-sideway-service.patch
 Patch01: 0002-CP-53716-Drop-ordering-and-renaming-network-interfac.patch
 Patch02: 0003-CP-53716-Drop-ordering-and-renaming-network-interfac.patch
@@ -20,6 +20,9 @@ Patch06: 0007-CP-54444-Remove-interface-rename-logic-for-legacy-up.patch
 Patch07: 0008-CP-54444-Use-MAC-addresses-to-find-out-the-mgmt-inte.patch
 Patch08: 0009-CP-54444-In-upgrade-convert-interface-rename-data-fo.patch
 Patch09: 0010-CP-307931-Remove-unused-net-admin-interface-key.patch
+
+# pr#278
+Patch20: 0001-Force-switch-tty-to-UTF-8-not-ISO-8859-1.patch
 
 # This is where we get 'multipath.conf' from
 BuildRequires: device-mapper-multipath
@@ -197,7 +200,6 @@ echo %{large_block_capable_sr_type} > %{buildroot}/%{feature_flag_dir}/large-blo
 
 %post startup
 /sbin/chkconfig --add early-blacklist
-/sbin/chkconfig --add interface-rename-sideway
 
 %triggerin -- kernel, kernel-alt
 rm -rf /boot/*
@@ -219,7 +221,7 @@ done
 rm -f /tmp/firmware-used.$$
 
 %changelog
-* Tue Jul 15 2025 Yann Dirson <yann.dirson@vates.tech> - 11.0.26-0.ydi.3
+* Tue Jul 15 2025 Yann Dirson <yann.dirson@vates.tech> - 11.0.26-0.ydi.7
 - Update to v11.0.26
   - Upstream stopped messing with depmod, follow suit (still have to remove
     systemd-udevd.d/installer.conf)
@@ -230,6 +232,7 @@ rm -f /tmp/firmware-used.$$
   - Updated deps to python3-xcp-libs
   - Explicitly disable debug_package
   - Uses dnf not yum
+  - Add patch proper console unicode display (pr#278)
 - Imported patches from feature/host-netdev-order
 - TEMP HACK remove dependency on device-mapper-multipath, which needs work
 - TEMP HACK depend on lvm2 not xenserver-lvm2, which needs work
