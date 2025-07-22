@@ -10,6 +10,10 @@ Group: Applications/System
 Source0: host-installer-%{version}.tar.gz
 
 BuildArch: noarch
+
+# Mandatory patches from XCP-ng 8.3
+Patch0001: 0001-Use-xcp-ng-deps-instead-of-groups.xml.patch
+
 # This is where we get 'multipath.conf' from
 BuildRequires: device-mapper-multipath
 
@@ -195,6 +199,8 @@ echo %{large_block_capable_sr_type} > %{buildroot}/%{feature_flag_dir}/large-blo
 %changelog
 * Tue Nov 03 2026 Yann Dirson <yann.dirson@vates.tech> - 11.2.0-1.1
 - Update to v11.2.0-1 xenserver release
+  - Pick limited number of 8.3 patches for now:
+    - xcp-ng-deps not packagegroups (possibly to reconsider)
 - TEMP HACK remove dependency on device-mapper-multipath, which needs work
 - TEMP HACK depend on lvm2 not xenserver-lvm2, which needs work
 - TEMP HACK point to some multipath.conf so "make install" passes
