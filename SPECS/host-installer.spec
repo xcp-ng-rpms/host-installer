@@ -245,6 +245,7 @@ rm -f /tmp/firmware-used.$$
   - Add patch for proper console unicode display (pr#278)
   - Add patch for kernel-core support
 - Imported patches from feature/host-netdev-order
+  - drops interface-rename-sideway
 - Add patch for debugging rpm scriptlet errors
 - TEMP HACK remove dependency on device-mapper-multipath, which needs work
 - TEMP HACK depend on lvm2 not xenserver-lvm2, which needs work
