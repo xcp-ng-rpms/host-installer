@@ -248,11 +248,11 @@ rm -f /tmp/firmware-used.$$
 - TEMP HACK depend on lvm2 not xenserver-lvm2, which needs work
 - TEMP HACK point to some multipath.conf so "make install" passes
 
-* Tue Jun 04 2025 Yann Dirson <yann.dirson@vates.tech> - 10.10.29.xcpng.3-1
+* Wed Jun 04 2025 Yann Dirson <yann.dirson@vates.tech> - 10.10.29.xcpng.3-1
 - Update to v10.10.29.xcpng.3 release:
   - Don't ask repoquery to check signed repos, it cannot do that
 
-* Tue Jun 04 2025 Yann Dirson <yann.dirson@vates.tech> - 10.10.29.xcpng.2-2
+* Wed Jun 04 2025 Yann Dirson <yann.dirson@vates.tech> - 10.10.29.xcpng.2-2
 - Add missing Requires: yum-utils, necessary to handle LINSTOR upgrades
 
 * Tue Jun 03 2025 Yann Dirson <yann.dirson@vates.tech> - 10.10.29.xcpng.2-1
