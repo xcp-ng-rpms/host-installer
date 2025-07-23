@@ -4,7 +4,7 @@
 Summary: XenServer Installer
 Name: host-installer
 Version: 11.0.26
-Release: 0.ydi.9%{?dist}
+Release: 0.ydi.10%{?dist}
 License: GPLv2
 Group: Applications/System
 Source0: host-installer-%{version}.tar.gz
@@ -30,6 +30,9 @@ Patch31: 0002-Set-kernel-package-name-for-alma-based-pacakging.patch
 
 # help for debug
 Patch40: 0001-Raise-rpm-verbosity-to-understand-scriptlet-errors.patch
+
+# adjusment to Alma10
+Patch50: 0001-Use-EFI-almalinux.patch
 
 # Mandatory patches from XCP-ng 8.3
 Patch1000: 0001-Use-xcp-ng-deps-instead-of-groups.xml.patch
@@ -73,8 +76,8 @@ Requires(post): initscripts
 %define installer_dir /opt/xensource/installer
 %define feature_flag_dir /etc/xensource/features
 
-# TODO: 'xenserver' branding should be removed!
-%define efi_dir /EFI/xenserver
+# we cannot change the 'almalinux' branding without rebuilding at least grub and shim
+%define efi_dir /EFI/almalinux
 
 %define large_block_capable_sr_type largeblock
 
@@ -228,7 +231,7 @@ done
 rm -f /tmp/firmware-used.$$
 
 %changelog
-* Tue Jul 15 2025 Yann Dirson <yann.dirson@vates.tech> - 11.0.26-0.ydi.9
+* Tue Jul 15 2025 Yann Dirson <yann.dirson@vates.tech> - 11.0.26-0.ydi.10
 - Update to v11.0.26
   - Upstream stopped messing with depmod, follow suit (still have to remove
     systemd-udevd.d/installer.conf)
@@ -244,6 +247,7 @@ rm -f /tmp/firmware-used.$$
   - Uses dnf not yum
   - Add patch for proper console unicode display (pr#278)
   - Add patch for kernel-core support
+  - Add patch to use EFI/almalinux
 - Imported patches from feature/host-netdev-order
   - drops interface-rename-sideway
 - Add patch for debugging rpm scriptlet errors
