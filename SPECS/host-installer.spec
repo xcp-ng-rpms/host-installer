@@ -4,7 +4,7 @@
 Summary: XenServer Installer
 Name: host-installer
 Version: 11.0.26
-Release: 0.ydi.8%{?dist}
+Release: 0.ydi.9%{?dist}
 License: GPLv2
 Group: Applications/System
 Source0: host-installer-%{version}.tar.gz
@@ -23,6 +23,10 @@ Patch09: 0010-CP-307931-Remove-unused-net-admin-interface-key.patch
 
 # pr#278
 Patch20: 0001-Force-switch-tty-to-UTF-8-not-ISO-8859-1.patch
+
+# support kernel-core package name
+Patch30: 0001-Parametrize-kernel-package-name.patch
+Patch31: 0002-Set-kernel-package-name-for-alma-based-pacakging.patch
 
 # Mandatory patches from XCP-ng 8.3
 Patch1000: 0001-Use-xcp-ng-deps-instead-of-groups.xml.patch
@@ -224,7 +228,7 @@ done
 rm -f /tmp/firmware-used.$$
 
 %changelog
-* Tue Jul 15 2025 Yann Dirson <yann.dirson@vates.tech> - 11.0.26-0.ydi.8
+* Tue Jul 15 2025 Yann Dirson <yann.dirson@vates.tech> - 11.0.26-0.ydi.9
 - Update to v11.0.26
   - Upstream stopped messing with depmod, follow suit (still have to remove
     systemd-udevd.d/installer.conf)
@@ -238,6 +242,7 @@ rm -f /tmp/firmware-used.$$
   - Explicitly disable debug_package
   - Uses dnf not yum
   - Add patch for proper console unicode display (pr#278)
+  - Add patch for kernel-core support
 - Imported patches from feature/host-netdev-order
 - TEMP HACK remove dependency on device-mapper-multipath, which needs work
 - TEMP HACK depend on lvm2 not xenserver-lvm2, which needs work
