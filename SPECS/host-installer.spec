@@ -28,6 +28,9 @@ Patch20: 0001-Force-switch-tty-to-UTF-8-not-ISO-8859-1.patch
 Patch30: 0001-Parametrize-kernel-package-name.patch
 Patch31: 0002-Set-kernel-package-name-for-alma-based-pacakging.patch
 
+# help for debug
+Patch40: 0001-Raise-rpm-verbosity-to-understand-scriptlet-errors.patch
+
 # Mandatory patches from XCP-ng 8.3
 Patch1000: 0001-Use-xcp-ng-deps-instead-of-groups.xml.patch
 
@@ -244,6 +247,7 @@ rm -f /tmp/firmware-used.$$
   - Add patch for proper console unicode display (pr#278)
   - Add patch for kernel-core support
 - Imported patches from feature/host-netdev-order
+- Add patch for debugging rpm scriptlet errors
 - TEMP HACK remove dependency on device-mapper-multipath, which needs work
 - TEMP HACK depend on lvm2 not xenserver-lvm2, which needs work
 - TEMP HACK point to some multipath.conf so "make install" passes
