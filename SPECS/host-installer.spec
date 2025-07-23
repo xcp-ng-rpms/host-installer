@@ -14,6 +14,9 @@ BuildArch: noarch
 # Mandatory patches from XCP-ng 8.3
 Patch0001: 0001-Use-xcp-ng-deps-instead-of-groups.xml.patch
 
+# adjustment to Alma10
+Patch1000: 0002-Use-EFI-almalinux.patch
+
 # This is where we get 'multipath.conf' from
 BuildRequires: device-mapper-multipath
 
@@ -55,8 +58,8 @@ Requires: dmv-utils
 %define installer_dir /opt/xensource/installer
 %define feature_flag_dir /etc/xensource/features
 
-# TODO: 'xenserver' branding should be removed!
-%define efi_dir /EFI/xenserver
+# we cannot change the 'almalinux' branding without rebuilding at least grub and shim
+%define efi_dir /EFI/almalinux
 
 %define large_block_capable_sr_type largeblock
 
@@ -201,6 +204,7 @@ echo %{large_block_capable_sr_type} > %{buildroot}/%{feature_flag_dir}/large-blo
 - Update to v11.2.0-1 xenserver release
   - Pick limited number of 8.3 patches for now:
     - xcp-ng-deps not packagegroups (possibly to reconsider)
+- Add patch to use EFI/almalinux
 - TEMP HACK remove dependency on device-mapper-multipath, which needs work
 - TEMP HACK depend on lvm2 not xenserver-lvm2, which needs work
 - TEMP HACK point to some multipath.conf so "make install" passes
