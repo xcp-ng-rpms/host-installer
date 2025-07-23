@@ -208,9 +208,6 @@ echo %{large_block_capable_sr_type} > %{buildroot}/%{feature_flag_dir}/large-blo
 /usr/bin/systemctl disable lvm2-lvmetad
 /usr/bin/systemctl disable lvm2-monitor
 
-%post startup
-/sbin/chkconfig --add early-blacklist
-
 %triggerin -- kernel, kernel-alt
 rm -rf /boot/*
 rm -rf /usr/lib/modules/*/kernel/{drivers/infiniband,fs/{autofs4,btrfs,cramfs,exofs,gfs2,jfs,nfsd,ntfs,ocfs2,reiserfs,ufs,xfs}}
@@ -238,6 +235,7 @@ rm -f /tmp/firmware-used.$$
   - Upstream master does not have tests
   - Upstream dropped booting using BIOS with isolinux
   - Now ships interface-rename-sideway service
+  - v11.0.12 dropped early-blacklist
   - Pick limited number of 8.3 patches for now:
     - xcp-ng-deps not packagegroups (possibly to reconsider)
 - Build for Alma 10:
