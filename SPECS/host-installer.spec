@@ -237,7 +237,7 @@ rm -f /tmp/firmware-used.$$
   - Updated deps to python3-xcp-libs
   - Explicitly disable debug_package
   - Uses dnf not yum
-  - Add patch proper console unicode display (pr#278)
+  - Add patch for proper console unicode display (pr#278)
 - Imported patches from feature/host-netdev-order
 - TEMP HACK remove dependency on device-mapper-multipath, which needs work
 - TEMP HACK depend on lvm2 not xenserver-lvm2, which needs work
