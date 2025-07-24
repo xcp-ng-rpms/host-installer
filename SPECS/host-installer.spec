@@ -16,6 +16,15 @@ Patch0001: 0001-Use-xcp-ng-deps-instead-of-groups.xml.patch
 
 # adjustment to Alma10
 Patch1000: 0002-Use-EFI-almalinux.patch
+Patch1001: 0003-Boot-on-Alma10.patch
+Patch1002: 0004-Set-GRUB-prefix-to-locate-its-modules-on-Alma10.patch
+Patch1003: 0005-Add-an-XCP-ng-9-specific-finalization-task.patch
+Patch1004: 0006-Second-dnf-install-run-for-crypto-policies.patch
+Patch1005: 0007-Switch-grub-config-back-to-multiboot2.patch
+# pr#278
+Patch1006: 0008-Force-switch-tty-to-UTF-8-not-ISO-8859-1.patch
+Patch1007: 0009-Parametrize-kernel-package-name-set-to-kernel-xcpng.patch
+Patch1008: 0010-Raise-rpm-verbosity-to-understand-scriptlet-errors.patch
 
 # This is where we get 'multipath.conf' from
 BuildRequires: device-mapper-multipath
@@ -205,6 +214,12 @@ echo %{large_block_capable_sr_type} > %{buildroot}/%{feature_flag_dir}/large-blo
   - Pick limited number of 8.3 patches for now:
     - xcp-ng-deps not packagegroups (possibly to reconsider)
 - Add patch to use EFI/almalinux
+- Add patch for GRUB to be able to load its payloads
+- Add patch for GRUB to be able to load its modules
+- Add (temporary) patch to apply final workarounds to installed system
+- Add (temporary) patch to install crypto-policies after xcp-ng-deps (since its first
+  attempt silently fails)
+- Add patch for proper console unicode display (pr#278)
 - TEMP HACK remove dependency on device-mapper-multipath, which needs work
 - TEMP HACK depend on lvm2 not xenserver-lvm2, which needs work
 - TEMP HACK point to some multipath.conf so "make install" passes

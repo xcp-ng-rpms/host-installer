@@ -1,0 +1,116 @@
+From c708c9f008c9f45cb0dcef83d51a887ce494a45b Mon Sep 17 00:00:00 2001
+From: Yann Dirson <yann.dirson@vates.tech>
+Date: Wed, 4 Nov 2026 14:34:06 +0100
+Subject: [PATCH 07/10] Switch grub config back to multiboot2
+
+This reverts commit 37157e195f7ac4b99812ce2fabf1ae99cd119349
+("CP-308428: Use the xen_boot loader at install time"), and explicitly
+requests multiboot2 entries rather than xen_boot which is not in
+Alma's grub2.
+---
+ backend.py                |  8 ++++----
+ bootloader/grub-usb.patch |  2 +-
+ bootloader/grub.cfg       | 24 ++++++++++++------------
+ 3 files changed, 17 insertions(+), 17 deletions(-)
+
+diff --git a/backend.py b/backend.py
+index 317f28b..574647d 100644
+--- a/backend.py
++++ b/backend.py
+@@ -1087,7 +1087,7 @@ def buildBootLoaderMenu(mounts, xen_version, xen_kernel_version, boot_config, se
+                              kernel_args=' '.join(kernel_rootdisk + xs_kernel_core + kernel_console_vga + ["quiet"]),
+                              initrd=f"/boot/initrd-{xen_kernel_version}.img", title=MY_PRODUCT_BRAND,
+                              root=constants.rootfs_label%disk_label_suffix)
+-    e.entry_format = Grub2Format.XEN_BOOT
++    e.entry_format = Grub2Format.MULTIBOOT2
+     boot_config.append("xe", e)
+     boot_config.default = "xe"
+     if serial:
+@@ -1097,7 +1097,7 @@ def buildBootLoaderMenu(mounts, xen_version, xen_kernel_version, boot_config, se
+                                  kernel_args=' '.join(kernel_rootdisk + xs_kernel_core + kernel_console_serial),
+                                  initrd=f"/boot/initrd-{xen_kernel_version}.img", title=MY_PRODUCT_BRAND+" (Serial)",
+                                  root=constants.rootfs_label%disk_label_suffix)
+-        e.entry_format = Grub2Format.XEN_BOOT
++        e.entry_format = Grub2Format.MULTIBOOT2
+         boot_config.append("xe-serial", e)
+         if boot_serial:
+             boot_config.default = "xe-serial"
+@@ -1116,7 +1116,7 @@ def buildBootLoaderMenu(mounts, xen_version, xen_kernel_version, boot_config, se
+                              initrd="/boot/initrd-fallback.img",
+                              title="%s (Xen %s / Linux %s)" % (MY_PRODUCT_BRAND, xen_version, xen_kernel_version),
+                              root=constants.rootfs_label%disk_label_suffix)
+-    e.entry_format = Grub2Format.XEN_BOOT
++    e.entry_format = Grub2Format.MULTIBOOT2
+     boot_config.append("fallback", e)
+     if serial:
+         e = bootloader.MenuEntry(hypervisor="/boot/xen-fallback.gz",
+@@ -1126,7 +1126,7 @@ def buildBootLoaderMenu(mounts, xen_version, xen_kernel_version, boot_config, se
+                                  initrd="/boot/initrd-fallback.img",
+                                  title="%s (Serial, Xen %s / Linux %s)" % (MY_PRODUCT_BRAND, xen_version, xen_kernel_version),
+                                  root=constants.rootfs_label%disk_label_suffix)
+-        e.entry_format = Grub2Format.XEN_BOOT
++        e.entry_format = Grub2Format.MULTIBOOT2
+         boot_config.append("fallback-serial", e)
+ 
+     # Write an xs_settings file to the root partition, but only if
+diff --git a/bootloader/grub-usb.patch b/bootloader/grub-usb.patch
+index 726c9e1..66e0439 100644
+--- a/bootloader/grub-usb.patch
++++ b/bootloader/grub-usb.patch
+@@ -6,4 +6,4 @@
+ +search --file --set /install.img
+  
+  menuentry "install" {
+-     xen_hypervisor /boot/xen.efi dom0_max_vcpus=1-16 dom0_mem=max:8192M com1=115200,8n1 console=com1,vga
++     multiboot2 /boot/xen.efi dom0_max_vcpus=1-16 dom0_mem=max:8192M com1=115200,8n1 console=com1,vga
+diff --git a/bootloader/grub.cfg b/bootloader/grub.cfg
+index b4082d1..65d70ff 100644
+--- a/bootloader/grub.cfg
++++ b/bootloader/grub.cfg
+@@ -2,15 +2,15 @@ set default="0"
+ set timeout=5
+ 
+ menuentry "install" {
+-    xen_hypervisor /boot/xen.efi dom0_max_vcpus=1-16 dom0_mem=max:8192M com1=115200,8n1 console=com1,vga
+-    xen_module /boot/vmlinuz console=hvc0 console=tty0
+-    xen_module /install.img
++    multiboot2 /boot/xen.efi dom0_max_vcpus=1-16 dom0_mem=max:8192M com1=115200,8n1 console=com1,vga
++    module2 /boot/vmlinuz console=hvc0 console=tty0
++    module2 /install.img
+ }
+ 
+ menuentry "no-serial" {
+-    xen_hypervisor /boot/xen.efi dom0_max_vcpus=1-16 dom0_mem=max:8192M console=vga
+-    xen_module /boot/vmlinuz console=tty0
+-    xen_module /install.img
++    multiboot2 /boot/xen.efi dom0_max_vcpus=1-16 dom0_mem=max:8192M console=vga
++    module2 /boot/vmlinuz console=tty0
++    module2 /install.img
+ }
+ 
+ menuentry "memtest" {
+@@ -18,15 +18,15 @@ menuentry "memtest" {
+ }
+ 
+ menuentry "shell" {
+-    xen_hypervisor /boot/xen.efi dom0_max_vcpus=1-16 dom0_mem=max:8192M com1=115200,8n1 console=com1,vga
+-    xen_module /boot/vmlinuz console=hvc0 console=tty0 bash-shell
+-    xen_module /install.img
++    multiboot2 /boot/xen.efi dom0_max_vcpus=1-16 dom0_mem=max:8192M com1=115200,8n1 console=com1,vga
++    module2 /boot/vmlinuz console=hvc0 console=tty0 bash-shell
++    module2 /install.img
+ }
+ 
+ submenu "advanced-options" {
+     menuentry "common-criteria-prep" {
+-        xen_hypervisor /boot/xen.efi dom0_max_vcpus=1-16 dom0_mem=max:8192M com1=115200,8n1 console=com1,vga
+-        xen_module /boot/vmlinuz console=hvc0 console=tty0 cc-preparations
+-        xen_module /install.img
++        multiboot2 /boot/xen.efi dom0_max_vcpus=1-16 dom0_mem=max:8192M com1=115200,8n1 console=com1,vga
++        module2 /boot/vmlinuz console=hvc0 console=tty0 cc-preparations
++        module2 /install.img
+     }
+ }
+-- 
+2.47.3
+
