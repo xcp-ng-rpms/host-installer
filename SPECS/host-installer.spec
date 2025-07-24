@@ -4,7 +4,7 @@
 Summary: XenServer Installer
 Name: host-installer
 Version: 11.0.26
-Release: 0.ydi.10%{?dist}
+Release: 0.ydi.11%{?dist}
 License: GPLv2
 Group: Applications/System
 Source0: host-installer-%{version}.tar.gz
@@ -33,6 +33,7 @@ Patch40: 0001-Raise-rpm-verbosity-to-understand-scriptlet-errors.patch
 
 # adjusment to Alma10
 Patch50: 0001-Use-EFI-almalinux.patch
+Patch51: 0002-Boot-on-Alma10.patch
 
 # Mandatory patches from XCP-ng 8.3
 Patch1000: 0001-Use-xcp-ng-deps-instead-of-groups.xml.patch
@@ -116,6 +117,9 @@ rm -rf %{buildroot}
 make install DESTDIR=%{buildroot} INSTALLER_DIR=%{installer_dir} SM_ROOTDIR= \
      XS_MPATH_CONF=/usr/share/doc/device-mapper-multipath/multipath.conf
 rm %{buildroot}/etc/systemd/system/systemd-udevd.d/installer.conf
+
+# XCP-ng: our "Boot on Alma10" patch causes upstream grub-usb patch to be fuzzy, who cares
+rm %{buildroot}/EFI/almalinux/grub-usb.cfg.orig
 
 mkdir -p %{buildroot}/%{feature_flag_dir}
 # XCP-ng: no supplemental packs feature
@@ -231,7 +235,7 @@ done
 rm -f /tmp/firmware-used.$$
 
 %changelog
-* Tue Jul 15 2025 Yann Dirson <yann.dirson@vates.tech> - 11.0.26-0.ydi.10
+* Tue Jul 15 2025 Yann Dirson <yann.dirson@vates.tech> - 11.0.26-0.ydi.11
 - Update to v11.0.26
   - Upstream stopped messing with depmod, follow suit (still have to remove
     systemd-udevd.d/installer.conf)
@@ -248,6 +252,7 @@ rm -f /tmp/firmware-used.$$
   - Add patch for proper console unicode display (pr#278)
   - Add patch for kernel-core support
   - Add patch to use EFI/almalinux
+  - Add patch for GRUB to be able to load its payloads
 - Imported patches from feature/host-netdev-order
   - drops interface-rename-sideway
 - Add patch for debugging rpm scriptlet errors
