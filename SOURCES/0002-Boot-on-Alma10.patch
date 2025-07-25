@@ -1,7 +1,7 @@
 From afa38ff2b80bcbee8d407eae7aa0e957c90c86cd Mon Sep 17 00:00:00 2001
 From: Yann Dirson <yann.dirson@vates.tech>
 Date: Thu, 24 Jul 2025 16:01:33 +0200
-Subject: [PATCH 2/2] Boot on Alma10
+Subject: [PATCH 2/3] Boot on Alma10
 
 * xen.efi cannot yet be booted using multiboot2, stay with xen.gz
 * use full name for vmlinuz and initrd, not the XS custom symlink

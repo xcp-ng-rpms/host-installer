@@ -4,7 +4,7 @@
 Summary: XenServer Installer
 Name: host-installer
 Version: 11.0.26
-Release: 0.ydi.11%{?dist}
+Release: 0.ydi.12%{?dist}
 License: GPLv2
 Group: Applications/System
 Source0: host-installer-%{version}.tar.gz
@@ -31,9 +31,10 @@ Patch31: 0002-Set-kernel-package-name-for-alma-based-pacakging.patch
 # help for debug
 Patch40: 0001-Raise-rpm-verbosity-to-understand-scriptlet-errors.patch
 
-# adjusment to Alma10
+# adjustment to Alma10
 Patch50: 0001-Use-EFI-almalinux.patch
 Patch51: 0002-Boot-on-Alma10.patch
+Patch52: 0003-Set-GRUB-prefix-to-locate-its-modules-on-Alma10.patch
 
 # Mandatory patches from XCP-ng 8.3
 Patch1000: 0001-Use-xcp-ng-deps-instead-of-groups.xml.patch
@@ -118,8 +119,9 @@ make install DESTDIR=%{buildroot} INSTALLER_DIR=%{installer_dir} SM_ROOTDIR= \
      XS_MPATH_CONF=/usr/share/doc/device-mapper-multipath/multipath.conf
 rm %{buildroot}/etc/systemd/system/systemd-udevd.d/installer.conf
 
-# XCP-ng: our "Boot on Alma10" patch causes upstream grub-usb patch to be fuzzy, who cares
-rm %{buildroot}/EFI/almalinux/grub-usb.cfg.orig
+# not any more ?!
+# # XCP-ng: our "Boot on Alma10" patch causes upstream grub-usb patch to be fuzzy, who cares
+# rm %{buildroot}/EFI/almalinux/grub-usb.cfg.orig
 
 mkdir -p %{buildroot}/%{feature_flag_dir}
 # XCP-ng: no supplemental packs feature
@@ -253,6 +255,7 @@ rm -f /tmp/firmware-used.$$
   - Add patch for kernel-core support
   - Add patch to use EFI/almalinux
   - Add patch for GRUB to be able to load its payloads
+  - Add patch for GRUB to be able to load its modules
 - Imported patches from feature/host-netdev-order
   - drops interface-rename-sideway
 - Add patch for debugging rpm scriptlet errors
