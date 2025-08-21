@@ -1,6 +1,9 @@
 # XCP-ng build condition, we don't ship depmod config
 %bcond_with depmod
 
+# XCP-ng: make it easier o mix and match patches
+%global _default_patch_fuzz 2
+
 Summary: XenServer Installer
 Name: host-installer
 Version: 11.0.26
@@ -240,6 +243,8 @@ rm -f /tmp/firmware-used.$$
 %changelog
 * Tue Jul 15 2025 Yann Dirson <yann.dirson@vates.tech> - 11.0.26-0.ydi.13
 - Update to v11.0.26
+  - HACK restore patch fuzz tolerance to make it easier to use patch from
+    different branches
   - Upstream stopped messing with depmod, follow suit (still have to remove
     systemd-udevd.d/installer.conf)
   - Upstream master does not have tests
