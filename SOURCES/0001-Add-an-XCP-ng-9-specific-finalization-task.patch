@@ -1,4 +1,4 @@
-From 59ccbc07aa44fe2ecf6e5a9acdec5fb9e546c43b Mon Sep 17 00:00:00 2001
+From 2ffd5dd795c6106380963c597fe5ffda9fe737aa Mon Sep 17 00:00:00 2001
 From: Yann Dirson <yann.dirson@vates.tech>
 Date: Thu, 21 Aug 2025 15:06:20 +0200
 Subject: [PATCH] Add an XCP-ng 9 specific finalization task
@@ -6,11 +6,11 @@ Subject: [PATCH] Add an XCP-ng 9 specific finalization task
 Most of those are workarounds, not really achievable outside of the
 installer.
 ---
- backend.py | 17 +++++++++++++++++
- 1 file changed, 17 insertions(+)
+ backend.py | 12 ++++++++++++
+ 1 file changed, 12 insertions(+)
 
 diff --git a/backend.py b/backend.py
-index f4c6856..3342863 100644
+index f4c6856..f088574 100644
 --- a/backend.py
 +++ b/backend.py
 @@ -183,6 +183,7 @@ def getFinalisationSequence(ans):
@@ -21,21 +21,16 @@ index f4c6856..3342863 100644
          Task(writeInventory, A(ans, 'installation-uuid', 'control-domain-uuid', 'mounts', 'primary-disk',
                                 'backup-partnum', 'logs-partnum', 'boot-partnum', 'swap-partnum', 'storage-partnum',
                                 'guest-disks', 'net-admin-bridge',
-@@ -1316,6 +1317,22 @@ def configureCC(mounts):
+@@ -1316,6 +1317,17 @@ def configureCC(mounts):
      with open(os.path.join(mounts['root'], 'etc', 'sysconfig', 'iptables'), 'wb') as out:
          out.write(rules.replace(b'@SSH_RULE@', ssh_rule.encode()))
  
 +def configureXcpng(mounts):
 +    """Hopefully-temporary hacks for XCP-ng 9"""
 +
-+    # for some reason installing at the same time as some undetermined
-+    # other does not work, silently (hail DNF/RPM :sob:)
-+    util.runCmd2(['chroot', mounts['root'],
-+                  'dnf', 'install', 'crypto-policies'])
-+
 +    # we should instead install proper rules and let XAPI hook into them
-+    util.runCmd2(['chroot', mounts['root'],
-+                  'systemctl', 'disable', 'iptables.service'])
++    assert util.runCmd2(['chroot', mounts['root'],
++                         'systemctl', 'disable', 'iptables.service']) == 0
 +
 +    # EL10 disabled ssh root login
 +    with open(os.path.join(mounts['root'], 'etc/ssh/sshd_config'), "at") as ssh_cfg:
