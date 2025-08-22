@@ -1,7 +1,7 @@
 From 2ffd5dd795c6106380963c597fe5ffda9fe737aa Mon Sep 17 00:00:00 2001
 From: Yann Dirson <yann.dirson@vates.tech>
 Date: Thu, 21 Aug 2025 15:06:20 +0200
-Subject: [PATCH] Add an XCP-ng 9 specific finalization task
+Subject: [PATCH 1/2] Add an XCP-ng 9 specific finalization task
 
 Most of those are workarounds, not really achievable outside of the
 installer.

@@ -7,7 +7,7 @@
 Summary: XenServer Installer
 Name: host-installer
 Version: 11.0.26
-Release: 0.ydi.16%{?dist}
+Release: 0.ydi.18%{?dist}
 License: GPLv2
 Group: Applications/System
 Source0: host-installer-%{version}.tar.gz
@@ -39,6 +39,7 @@ Patch50: 0001-Use-EFI-almalinux.patch
 Patch51: 0002-Boot-on-Alma10.patch
 Patch52: 0003-Set-GRUB-prefix-to-locate-its-modules-on-Alma10.patch
 Patch53: 0001-Add-an-XCP-ng-9-specific-finalization-task.patch
+Patch54: 0002-Second-dnf-install-run-for-crypto-policies.patch
 
 # Mandatory patches from XCP-ng 8.3
 Patch1000: 0001-Use-xcp-ng-deps-instead-of-groups.xml.patch
@@ -241,7 +242,7 @@ done
 rm -f /tmp/firmware-used.$$
 
 %changelog
-* Tue Jul 15 2025 Yann Dirson <yann.dirson@vates.tech> - 11.0.26-0.ydi.16
+* Tue Jul 15 2025 Yann Dirson <yann.dirson@vates.tech> - 11.0.26-0.ydi.18
 - Update to v11.0.26
   - HACK restore patch fuzz tolerance to make it easier to use patch from
     different branches
@@ -263,6 +264,8 @@ rm -f /tmp/firmware-used.$$
   - Add patch for GRUB to be able to load its payloads
   - Add patch for GRUB to be able to load its modules
   - Add (temporary) patch to apply final workarounds to installed system
+  - Add (temporary) patch to install crypto-policies after xcp-ng-deps (since its first
+    attempt silently fails)
 - Imported patches from feature/host-netdev-order
   - drops interface-rename-sideway
 - Add patch for debugging rpm scriptlet errors
