@@ -46,7 +46,8 @@ Patch1000: 0001-Use-xcp-ng-deps-instead-of-groups.xml.patch
 
 # This is where we get 'multipath.conf' from
 BuildRequires: device-mapper-multipath
-BuildRequires: python-six python-mock
+BuildRequires: python-six
+#BuildRequires: python-mock
 BuildRequires: python3-xcp-libs
 
 Requires: device-mapper-multipath lvm2 iscsi-initiator-utils
