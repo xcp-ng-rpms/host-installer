@@ -7,7 +7,7 @@
 Summary: XenServer Installer
 Name: host-installer
 Version: 11.0.26
-Release: 0.ydi.18%{?dist}
+Release: 0.ydi.19%{?dist}
 License: GPLv2
 Group: Applications/System
 Source0: host-installer-%{version}.tar.gz
@@ -230,20 +230,23 @@ rm -rf /usr/lib/modules/*/kernel/{drivers/infiniband,fs/{autofs4,btrfs,cramfs,ex
 %triggerin -- xen-hypervisor
 rm -rf /boot/*
 
-%triggerin -- linux-firmware
-basename -a $(find /lib/modules -type f -name '*.ko' | xargs modinfo --field firmware) | sort -u >/tmp/firmware-used.$$
-for f in $(find /lib/firmware/ -type f); do
-   b=$(basename $f)
-   # keep files referenced by modinfo
-   grep -q $b /tmp/firmware-used.$$ && continue
-   # keep files referenced by modules
-   grep -qr $b /lib/modules && continue
-   rm -f $f
-done
-rm -f /tmp/firmware-used.$$
+# XCP-ng: disable this optimization, not aware that linux-firmware can
+# install files in unreachable directories but still get used through
+# symlinks
+#%triggerin -- linux-firmware
+#basename -a $(find /lib/modules -type f -name '*.ko' | xargs modinfo --field firmware) | sort -u >/tmp/firmware-used.$$
+#for f in $(find /lib/firmware/ -type f); do
+#   b=$(basename $f)
+#   # keep files referenced by modinfo
+#   grep -q $b /tmp/firmware-used.$$ && continue
+#   # keep files referenced by modules
+#   grep -qr $b /lib/modules && continue
+#   rm -f $f
+#done
+#rm -f /tmp/firmware-used.$$
 
 %changelog
-* Tue Jul 15 2025 Yann Dirson <yann.dirson@vates.tech> - 11.0.26-0.ydi.18
+* Tue Jul 15 2025 Yann Dirson <yann.dirson@vates.tech> - 11.0.26-0.ydi.19
 - Update to v11.0.26
   - HACK restore patch fuzz tolerance to make it easier to use patch from
     different branches
@@ -267,6 +270,7 @@ rm -f /tmp/firmware-used.$$
   - Add (temporary) patch to apply final workarounds to installed system
   - Add (temporary) patch to install crypto-policies after xcp-ng-deps (since its first
     attempt silently fails)
+  - Disable removal of firmware files
 - Imported patches from feature/host-netdev-order
   - drops interface-rename-sideway
 - Add patch for debugging rpm scriptlet errors
