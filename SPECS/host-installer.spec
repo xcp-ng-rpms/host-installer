@@ -7,7 +7,7 @@
 Summary: XenServer Installer
 Name: host-installer
 Version: 11.0.26
-Release: 0.ydi.20%{?dist}
+Release: 0.ydi.21%{?dist}
 License: GPLv2
 Group: Applications/System
 Source0: host-installer-%{version}.tar.gz
@@ -40,6 +40,7 @@ Patch51: 0002-Boot-on-Alma10.patch
 Patch52: 0003-Set-GRUB-prefix-to-locate-its-modules-on-Alma10.patch
 Patch53: 0001-Add-an-XCP-ng-9-specific-finalization-task.patch
 Patch54: 0002-Second-dnf-install-run-for-crypto-policies.patch
+Patch55: 0003-Make-sure-Alma-EPEL-repositories-are-disabled-by-def.patch
 
 # Mandatory patches from XCP-ng 8.3
 Patch1000: 0001-Use-xcp-ng-deps-instead-of-groups.xml.patch
@@ -246,7 +247,7 @@ rm -rf /boot/*
 #rm -f /tmp/firmware-used.$$
 
 %changelog
-* Tue Jul 15 2025 Yann Dirson <yann.dirson@vates.tech> - 11.0.26-0.ydi.20
+* Tue Jul 15 2025 Yann Dirson <yann.dirson@vates.tech> - 11.0.26-0.ydi.21
 - Update to v11.0.26
   - HACK restore patch fuzz tolerance to make it easier to use patch from
     different branches
@@ -277,6 +278,7 @@ rm -rf /boot/*
 - TEMP HACK remove dependency on device-mapper-multipath, which needs work
 - TEMP HACK depend on lvm2 not xenserver-lvm2, which needs work
 - TEMP HACK point to some multipath.conf so "make install" passes
+- Make sure Alma/EPEL repositories on host are disabled by default
 
 * Wed Jun 04 2025 Yann Dirson <yann.dirson@vates.tech> - 10.10.29.xcpng.3-1
 - Update to v10.10.29.xcpng.3 release:
