@@ -7,7 +7,7 @@
 Summary: XenServer Installer
 Name: host-installer
 Version: 11.0.26
-Release: 0.ydi.21%{?dist}
+Release: 0.ydi.22%{?dist}
 License: GPLv2
 Group: Applications/System
 Source0: host-installer-%{version}.tar.gz
@@ -47,7 +47,6 @@ Patch1000: 0001-Use-xcp-ng-deps-instead-of-groups.xml.patch
 
 # This is where we get 'multipath.conf' from
 BuildRequires: device-mapper-multipath
-BuildRequires: python-six
 #BuildRequires: python-mock
 BuildRequires: python3-xcp-libs
 
@@ -70,7 +69,6 @@ Requires: psmisc
 # IPv6
 Requires: ndisc6
 
-Requires: python-six
 Requires: pyOpenSSL
 
 # LINSTOR (needs repoquery)
@@ -247,7 +245,7 @@ rm -rf /boot/*
 #rm -f /tmp/firmware-used.$$
 
 %changelog
-* Tue Jul 15 2025 Yann Dirson <yann.dirson@vates.tech> - 11.0.26-0.ydi.21
+* Tue Jul 15 2025 Yann Dirson <yann.dirson@vates.tech> - 11.0.26-0.ydi.22
 - Update to v11.0.26
   - HACK restore patch fuzz tolerance to make it easier to use patch from
     different branches
@@ -259,6 +257,7 @@ rm -rf /boot/*
   - v11.0.12 dropped early-blacklist
   - Pick limited number of 8.3 patches for now:
     - xcp-ng-deps not packagegroups (possibly to reconsider)
+  - Drop unused dependencies on python-six
 - Build for Alma 10:
   - Updated deps to python3-xcp-libs
   - Explicitly disable debug_package
