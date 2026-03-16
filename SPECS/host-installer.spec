@@ -7,7 +7,7 @@
 Summary: XenServer Installer
 Name: host-installer
 Version: 11.0.26
-Release: 0.ydi.23%{?dist}
+Release: 0.ydi.24%{?dist}
 License: GPLv2
 Group: Applications/System
 Source0: host-installer-%{version}.tar.gz
@@ -73,6 +73,9 @@ Requires: pyOpenSSL
 
 # LINSTOR (needs repoquery)
 Requires: dnf
+
+# required by 0003-Make-sure-Alma-EPEL-repositories-are-disabled-by-def.patch
+Requires: dnf-plugins-core
 
 Requires: dmv-utils
 
@@ -247,7 +250,7 @@ rm -rf /boot/*
 #rm -f /tmp/firmware-used.$$
 
 %changelog
-* Tue Jul 15 2025 Yann Dirson <yann.dirson@vates.tech> - 11.0.26-0.ydi.23
+* Tue Jul 15 2025 Yann Dirson <yann.dirson@vates.tech> - 11.0.26-0.ydi.24
 - Update to v11.0.26
   - HACK restore patch fuzz tolerance to make it easier to use patch from
     different branches
