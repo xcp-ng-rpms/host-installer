@@ -1,13 +1,13 @@
-%global package_speccommit ccb0c1c1ceeff12bb63d96107dcaf779d3455c23
-%global package_srccommit v10.10.32
+%global package_speccommit ef5feac74b7811b9c176d381bd194fe18d175ce5
+%global package_srccommit v10.10.33
 
 Summary: XenServer Installer
 Name: host-installer
-Version: 10.10.32
+Version: 10.10.33
 Release: 1%{?xsrel}%{?dist}
 License: GPLv2
 Group: Applications/System
-Source0: host-installer-10.10.32.tar.gz
+Source0: host-installer-10.10.33.tar.gz
 # This is where we get 'multipath.conf' from
 BuildRequires: sm xenserver-multipath xenserver-lvm2
 BuildRequires: python-six python-mock
@@ -199,6 +199,9 @@ done
 rm -f /tmp/firmware-used.$$
 
 %changelog
+* Tue Sep 09 2025 Gerald Elder-Vass <gerald.elder-vass@cloud.com> - 10.10.33-1
+- CA-416905: Fix upgrade for pre-XS8.4 BIOS hosts
+
 * Tue Aug 12 2025 Gerald Elder-Vass <gerald.elder-vass@cloud.com> - 10.10.32-1
 - upgrade: restore saved firewall-port plugin state
 - upgrade: allow preserving symbolic links
