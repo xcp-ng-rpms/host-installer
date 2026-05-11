@@ -1,13 +1,13 @@
-%global package_speccommit ef5feac74b7811b9c176d381bd194fe18d175ce5
-%global package_srccommit v10.10.33
+%global package_speccommit f64d62ed042ffddace85405f43d791d6bd6f6edf
+%global package_srccommit v10.10.34
 
 Summary: XenServer Installer
 Name: host-installer
-Version: 10.10.33
+Version: 10.10.34
 Release: 1%{?xsrel}%{?dist}
 License: GPLv2
 Group: Applications/System
-Source0: host-installer-10.10.33.tar.gz
+Source0: host-installer-10.10.34.tar.gz
 # This is where we get 'multipath.conf' from
 BuildRequires: sm xenserver-multipath xenserver-lvm2
 BuildRequires: python-six python-mock
@@ -199,6 +199,9 @@ done
 rm -f /tmp/firmware-used.$$
 
 %changelog
+* Thu Sep 18 2025 Deli Zhang <deli.zhang@cloud.com> - 10.10.34-1
+- CA-416337: Use WWN link for NVMe device
+
 * Tue Sep 09 2025 Gerald Elder-Vass <gerald.elder-vass@cloud.com> - 10.10.33-1
 - CA-416905: Fix upgrade for pre-XS8.4 BIOS hosts
 
