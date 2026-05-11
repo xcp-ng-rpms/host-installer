@@ -1,13 +1,13 @@
-%global package_speccommit d36b6c3ee932ae5529d67bd5b94ac28de0535dc0
-%global package_srccommit v10.10.31
+%global package_speccommit ccb0c1c1ceeff12bb63d96107dcaf779d3455c23
+%global package_srccommit v10.10.32
 
 Summary: XenServer Installer
 Name: host-installer
-Version: 10.10.31
+Version: 10.10.32
 Release: 1%{?xsrel}%{?dist}
 License: GPLv2
 Group: Applications/System
-Source0: host-installer-10.10.31.tar.gz
+Source0: host-installer-10.10.32.tar.gz
 # This is where we get 'multipath.conf' from
 BuildRequires: sm xenserver-multipath xenserver-lvm2
 BuildRequires: python-six python-mock
@@ -199,6 +199,18 @@ done
 rm -f /tmp/firmware-used.$$
 
 %changelog
+* Tue Aug 12 2025 Gerald Elder-Vass <gerald.elder-vass@cloud.com> - 10.10.32-1
+- upgrade: restore saved firewall-port plugin state
+- upgrade: allow preserving symbolic links
+- Give more explicit message when Yum gets killed
+- CA-409830: Confirm when overwriting an SR
+- Identify all SR types correctly when probing the disk
+- CP-54461: SW RAID restore support
+- Always mount efi/esp during restore
+- CA-400058: Fail if there is no first partition to preserve
+- CP-54459: SW RAID install support
+- CA-410594: Settle udev after eject
+
 * Mon Jun 09 2025 Deli Zhang <deli.zhang@cloud.com> - 10.10.31-1
 - CA-411650: Fix disk partition re bug
 
