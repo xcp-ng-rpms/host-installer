@@ -1,13 +1,13 @@
-%global package_speccommit e2eaa4b5b8030a5cbe63dafbf9808635c2dbafaf
-%global package_srccommit v10.10.35
+%global package_speccommit 6af14543af5b775a9647bd6acf969be135daa925
+%global package_srccommit v10.10.37
 
 Summary: XenServer Installer
 Name: host-installer
-Version: 10.10.35
+Version: 10.10.37
 Release: 1%{?xsrel}%{?dist}
 License: GPLv2
 Group: Applications/System
-Source0: host-installer-10.10.35.tar.gz
+Source0: host-installer-10.10.37.tar.gz
 # This is where we get 'multipath.conf' from
 BuildRequires: sm xenserver-multipath xenserver-lvm2
 BuildRequires: python-six python-mock
@@ -199,6 +199,11 @@ done
 rm -f /tmp/firmware-used.$$
 
 %changelog
+* Mon Dec 15 2025 Changlei Li <changlei.li@cloud.com> - 10.10.37-1
+- CA-417495 Clean NTP servers in chrony.conf when disable NTP
+- CA-421646 Recognize NTP none mode before upgrade
+- CA-421979 Fix import error
+
 * Thu Sep 18 2025 Gerald Elder-Vass <gerald.elder-vass@citrix.com> - 10.10.35-1
 - CA-416618: Support degraded SW RAID installations
 
