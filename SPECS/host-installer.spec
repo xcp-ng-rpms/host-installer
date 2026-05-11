@@ -3,7 +3,7 @@
 
 Summary: XenServer Installer
 Name: host-installer
-Version: 10.10.29.xcpng.3
+Version: 10.10.38.xcpng.1
 Release: 1%{?dist}
 License: GPLv2
 Group: Applications/System
@@ -216,6 +216,53 @@ done
 rm -f /tmp/firmware-used.$$
 
 %changelog
+* Thu Jun 18 2026 Yann Dirson <yann.dirson@vates.tech> - 10.10.38.xcpng.1-1
+- Update to v10.10.38.xcpng.1 release:
+- Reimplement XCP-ng RAID1 support in terms of XS implementation
+- Fix installation on a disk that was part of a previous raid1 install
+- Enable debug traces by default
+- Sync with xenserver 10.10.38-1:
+  * Wed Feb 4 2026 Chunjie Zhu <chunjie.zhu@citrix.com> - 10.10.38-1
+  - CA-423190: rpu revert script calls python3 explicitly
+  - CA-421841: Fail explicitly when disk is missing
+
+  * Mon Dec 15 2025 Changlei Li <changlei.li@cloud.com> - 10.10.37-1
+  - CA-417495 Clean NTP servers in chrony.conf when disable NTP
+  - CA-421646 Recognize NTP none mode before upgrade
+  - CA-421979 Fix import error
+
+  * Thu Sep 18 2025 Gerald Elder-Vass <gerald.elder-vass@citrix.com> - 10.10.35-1
+  - CA-416618: Support degraded SW RAID installations
+
+  * Thu Sep 18 2025 Deli Zhang <deli.zhang@cloud.com> - 10.10.34-1
+  - CA-416337: Use WWN link for NVMe device
+
+  * Tue Sep 09 2025 Gerald Elder-Vass <gerald.elder-vass@cloud.com> - 10.10.33-1
+  - CA-416905: Fix upgrade for pre-XS8.4 BIOS hosts
+
+  * Tue Aug 12 2025 Gerald Elder-Vass <gerald.elder-vass@cloud.com> - 10.10.32-1
+  - upgrade: restore saved firewall-port plugin state
+  - upgrade: allow preserving symbolic links
+  - Give more explicit message when Yum gets killed
+  - CA-409830: Confirm when overwriting an SR
+  - Identify all SR types correctly when probing the disk
+  - CP-54461: SW RAID restore support
+  - Always mount efi/esp during restore
+  - CA-400058: Fail if there is no first partition to preserve
+  - CP-54459: SW RAID install support
+  - CA-410594: Settle udev after eject
+
+  * Mon Jun 09 2025 Deli Zhang <deli.zhang@cloud.com> - 10.10.31-1
+  - CA-411650: Fix disk partition re bug
+
+  * Fri May 23 2025 Deli Zhang <deli.zhang@cloud.com> - 10.10.30-1
+  - CA-411085: Fix issue of pv name is device link
+  - Enhance tracing to hunt for restore bug
+  - disktool: Optionally dump old/new partitions during commit
+
+  * Tue Apr 29 2025 Frediano Ziglio <frediano.ziglio@cloud.com> - 10.10.29-1
+  - CA-409996: Fix manual upgrade
+
 * Tue Jun 04 2025 Yann Dirson <yann.dirson@vates.tech> - 10.10.29.xcpng.3-1
 - Update to v10.10.29.xcpng.3 release:
   - Don't ask repoquery to check signed repos, it cannot do that
