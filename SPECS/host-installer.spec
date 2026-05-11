@@ -1,13 +1,13 @@
-%global package_speccommit f64d62ed042ffddace85405f43d791d6bd6f6edf
-%global package_srccommit v10.10.34
+%global package_speccommit e2eaa4b5b8030a5cbe63dafbf9808635c2dbafaf
+%global package_srccommit v10.10.35
 
 Summary: XenServer Installer
 Name: host-installer
-Version: 10.10.34
+Version: 10.10.35
 Release: 1%{?xsrel}%{?dist}
 License: GPLv2
 Group: Applications/System
-Source0: host-installer-10.10.34.tar.gz
+Source0: host-installer-10.10.35.tar.gz
 # This is where we get 'multipath.conf' from
 BuildRequires: sm xenserver-multipath xenserver-lvm2
 BuildRequires: python-six python-mock
@@ -199,6 +199,9 @@ done
 rm -f /tmp/firmware-used.$$
 
 %changelog
+* Thu Sep 18 2025 Gerald Elder-Vass <gerald.elder-vass@citrix.com> - 10.10.35-1
+- CA-416618: Support degraded SW RAID installations
+
 * Thu Sep 18 2025 Deli Zhang <deli.zhang@cloud.com> - 10.10.34-1
 - CA-416337: Use WWN link for NVMe device
 
