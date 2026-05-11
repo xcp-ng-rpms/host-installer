@@ -1,13 +1,13 @@
-%global package_speccommit 6af14543af5b775a9647bd6acf969be135daa925
-%global package_srccommit v10.10.37
+%global package_speccommit 30bf2712968fd6e36097cd43bedd097936b4a969
+%global package_srccommit v10.10.38
 
 Summary: XenServer Installer
 Name: host-installer
-Version: 10.10.37
+Version: 10.10.38
 Release: 1%{?xsrel}%{?dist}
 License: GPLv2
 Group: Applications/System
-Source0: host-installer-10.10.37.tar.gz
+Source0: host-installer-10.10.38.tar.gz
 # This is where we get 'multipath.conf' from
 BuildRequires: sm xenserver-multipath xenserver-lvm2
 BuildRequires: python-six python-mock
@@ -199,6 +199,10 @@ done
 rm -f /tmp/firmware-used.$$
 
 %changelog
+* Wed Feb 4 2026 Chunjie Zhu <chunjie.zhu@citrix.com> - 10.10.38-1
+- CA-423190: rpu revert script calls python3 explicitly
+- CA-421841: Fail explicitly when disk is missing
+
 * Mon Dec 15 2025 Changlei Li <changlei.li@cloud.com> - 10.10.37-1
 - CA-417495 Clean NTP servers in chrony.conf when disable NTP
 - CA-421646 Recognize NTP none mode before upgrade
