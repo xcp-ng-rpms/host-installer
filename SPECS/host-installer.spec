@@ -1,13 +1,13 @@
-%global package_speccommit ce147fbbc5c6f4b1b73803dcdfa74148b2af8cf3
-%global package_srccommit v10.10.29
+%global package_speccommit 510b8bff5ad34b8e8b7d75da0e9194ffd8ca7ad4
+%global package_srccommit v10.10.30
 
 Summary: XenServer Installer
 Name: host-installer
-Version: 10.10.29
+Version: 10.10.30
 Release: 1%{?xsrel}%{?dist}
 License: GPLv2
 Group: Applications/System
-Source0: host-installer-10.10.29.tar.gz
+Source0: host-installer-10.10.30.tar.gz
 # This is where we get 'multipath.conf' from
 BuildRequires: sm xenserver-multipath xenserver-lvm2
 BuildRequires: python-six python-mock
@@ -199,7 +199,12 @@ done
 rm -f /tmp/firmware-used.$$
 
 %changelog
-* Tue Apr 29 2025 Frediano Ziglio <frediano.ziglio@cloud.com> - 10.10.28-1
+* Fri May 23 2025 Deli Zhang <deli.zhang@cloud.com> - 10.10.30-1
+- CA-411085: Fix issue of pv name is device link
+- Enhance tracing to hunt for restore bug
+- disktool: Optionally dump old/new partitions during commit
+
+* Tue Apr 29 2025 Frediano Ziglio <frediano.ziglio@cloud.com> - 10.10.29-1
 - CA-409996: Fix manual upgrade
 
 * Mon Apr 07 2025 Gerald Elder-Vass <gerald.elder-vass@cloud.com> - 10.10.28-1
