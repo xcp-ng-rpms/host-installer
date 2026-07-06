@@ -3,7 +3,7 @@
 
 Summary: XenServer Installer
 Name: host-installer
-Version: 10.10.38.xcpng.1
+Version: 10.10.38.xcpng.2
 Release: 1%{?dist}
 License: GPLv2
 Group: Applications/System
@@ -216,6 +216,15 @@ done
 rm -f /tmp/firmware-used.$$
 
 %changelog
+* Thu Jul 09 2026 Yann Dirson <yann.dirson@vates.tech> - 10.10.38.xcpng.2-1
+- Update to v10.10.38.xcpng.2 release:
+  - Fix RAID regressions:
+    - error on creation when selecting more than 2 disks
+    - creation done in degraded mode even when no disk is missing
+    - selection of disks for local-SR allowing to select disks used as RAID member
+    - cancellation of the RAID selection dialog, or getting back past disk selection,
+      not properly falling back non non-RAID
+
 * Thu Jun 18 2026 Yann Dirson <yann.dirson@vates.tech> - 10.10.38.xcpng.1-1
 - Update to v10.10.38.xcpng.1 release:
   - Reimplement XCP-ng RAID1 support in terms of XS implementation
