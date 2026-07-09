@@ -218,9 +218,9 @@ rm -f /tmp/firmware-used.$$
 %changelog
 * Thu Jun 18 2026 Yann Dirson <yann.dirson@vates.tech> - 10.10.38.xcpng.1-1
 - Update to v10.10.38.xcpng.1 release:
-- Reimplement XCP-ng RAID1 support in terms of XS implementation
-- Fix installation on a disk that was part of a previous raid1 install
-- Enable debug traces by default
+  - Reimplement XCP-ng RAID1 support in terms of XS implementation
+  - Fix installation on a disk that was part of a previous raid1 install
+  - Enable debug traces by default
 - Sync with xenserver 10.10.38-1:
   * Wed Feb 4 2026 Chunjie Zhu <chunjie.zhu@citrix.com> - 10.10.38-1
   - CA-423190: rpu revert script calls python3 explicitly
