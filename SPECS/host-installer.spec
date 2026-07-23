@@ -3,7 +3,7 @@
 
 Summary: XenServer Installer
 Name: host-installer
-Version: 10.10.38.xcpng.2
+Version: 10.10.38.xcpng.3
 Release: 1%{?dist}
 License: GPLv2
 Group: Applications/System
@@ -216,6 +216,11 @@ done
 rm -f /tmp/firmware-used.$$
 
 %changelog
+* Thu Jul 23 2026 Yann Dirson <yann.dirson@vates.tech> - 10.10.38.xcpng.3-1
+- Update to v10.10.38.xcpng.3 release:
+  - Fix identification of the LINSTOR versions in the repo, when the required one
+    is not the most recent one
+
 * Thu Jul 09 2026 Yann Dirson <yann.dirson@vates.tech> - 10.10.38.xcpng.2-1
 - Update to v10.10.38.xcpng.2 release:
   - Fix RAID regressions:
