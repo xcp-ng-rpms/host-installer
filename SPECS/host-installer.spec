@@ -3,7 +3,7 @@
 
 Summary: XenServer Installer
 Name: host-installer
-Version: 10.10.38.xcpng.3
+Version: 10.10.38.xcpng.4
 Release: 1%{?dist}
 License: GPLv2
 Group: Applications/System
@@ -216,6 +216,11 @@ done
 rm -f /tmp/firmware-used.$$
 
 %changelog
+* Wed Aug 05 2026 Yann Dirson <yann.dirson@vates.tech> - 10.10.38.xcpng.4-1
+- Update to v10.10.38.xcpng.4 release:
+  - Fix linstor ugrade to pull specific version of xcp-ng-linstor
+  - Fail when a package for install is not found
+
 * Thu Jul 23 2026 Yann Dirson <yann.dirson@vates.tech> - 10.10.38.xcpng.3-1
 - Update to v10.10.38.xcpng.3 release:
   - Fix identification of the LINSTOR versions in the repo, when the required one
