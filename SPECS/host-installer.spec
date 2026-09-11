@@ -4,7 +4,7 @@
 Summary: XenServer Installer
 Name: host-installer
 Version: 10.10.38.xcpng.5
-Release: 2%{?dist}
+Release: 2~XCPNG3800.1%{?dist}
 License: GPLv2
 Group: Applications/System
 Source0: host-installer-%{version}.tar.gz
