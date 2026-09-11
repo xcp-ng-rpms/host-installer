@@ -3,8 +3,8 @@
 
 Summary: XenServer Installer
 Name: host-installer
-Version: 10.10.38.xcpng.4
-Release: 1%{?dist}
+Version: 10.10.38.xcpng.5
+Release: 2%{?dist}
 License: GPLv2
 Group: Applications/System
 Source0: host-installer-%{version}.tar.gz
@@ -216,6 +216,11 @@ done
 rm -f /tmp/firmware-used.$$
 
 %changelog
+* Fri Sep 11 2026 Philippe Coval <philippe.coval@vates.tech> - 10.10.38.xcpng.5-1
+- Update to v10.10.38.xcpng.5 release:
+  - time: Add time check warning (comparing system time to media one)
+  - time: Fix wrong time issue, clock sync after network setup
+
 * Wed Aug 05 2026 Yann Dirson <yann.dirson@vates.tech> - 10.10.38.xcpng.4-1
 - Update to v10.10.38.xcpng.4 release:
   - Fix linstor ugrade to pull specific version of xcp-ng-linstor
