@@ -1,0 +1,80 @@
+From 959bb7a2daa1a72e851139e936e2a8123fad5daa Mon Sep 17 00:00:00 2001
+From: Olivier Lambert <olivier.lambert@vates.tech>
+Date: Sun, 4 Oct 2026 12:53:18 +0200
+Subject: [PATCH 4/6] Merge sgdisk invocations when writing a GPT
+
+Each sgdisk run costs about a second (sync + partition re-read).
+Replace --clear + --zap with a single --zap-all, and create the new GPT
+in the same run as the partitions when no protective-MBR tweak is
+needed in between (i.e. with an ESP). Verified to produce an identical
+partition table.
+---
+ disktools.py | 33 +++++++++++++++++----------------
+ 1 file changed, 17 insertions(+), 16 deletions(-)
+
+diff --git a/disktools.py b/disktools.py
+index 1b501ba..770e5ee 100644
+--- a/disktools.py
++++ b/disktools.py
+@@ -1046,33 +1046,34 @@ class GPTPartitionTool(PartitionToolBase):
+             if rv:
+                 raise Exception('Failed to destroy GPT partitions on ' + self.device)
+ 
+-        # Bring us to a known state.
++        # Bring us to a known state: --zap-all destroys the main and backup
++        # GPT as well as the MBR (plain --zap would leave the backup GPT, and
++        # restore it if the main GPT is damaged, which is not what we want).
++        # Each sgdisk run costs about a second (sync + partition re-read), so
++        # keep their number down.
+         try:
+-            # --clear is called to clear the backup GPT first, since --zap does not clear this and
+-            # will restore the backup GPT if the main GPT is damaged (which is not what we want).
+-            self.cmdWrap([self.SGDISK, '--clear', self.device])
++            self.cmdWrap([self.SGDISK, '--zap-all', self.device])
+         except:
+             # Ignore error code which results from inconsistent initial state
+             pass
+ 
+-        try:
+-            self.cmdWrap([self.SGDISK, '--zap', self.device])
+-        except:
+-            # Ignore error code which results from inconsistent initial state
+-            pass
+-        args = [self.SGDISK, '--mbrtogpt', '--clear', self.device]
+-        if isDeviceMapperNode(self.device):
+-            self.cmdWrap(args)
+-        else:
+-            self.gdiskCheck(args)
+-
+         has_esp = False
+         for part in table.values():
+             if part['id'] == self.ID_EFI_BOOT:
+                 has_esp = True
+                 break
+ 
++        # Creating the fresh GPT can be done by the same sgdisk run that creates
++        # the partitions, unless the protective MBR must be tweaked in between.
++        new_gpt_args = ['--mbrtogpt', '--clear']
+         if not has_esp:
++            args = [self.SGDISK] + new_gpt_args + [self.device]
++            new_gpt_args = []
++            if isDeviceMapperNode(self.device):
++                self.cmdWrap(args)
++            else:
++                self.gdiskCheck(args)
++
+             # CA-54144: Some _stupid_ BIOSes refuse to boot disks that don't have a DOS partition table
+             # with an active partition.  This is incorrect because it makes the assumption that the
+             # bootloader uses a DOS partition table.  Instead the BIOSes _should_ just check for 0x55,0xaa
+@@ -1083,7 +1084,7 @@ class GPTPartitionTool(PartitionToolBase):
+ 
+         # Ensure that we write out in on-disk order to prevent conflicts when
+         # partition sizes get rounded.
+-        args = [self.SGDISK, '--set-alignment=1']
++        args = [self.SGDISK] + new_gpt_args + ['--set-alignment=1']
+         items = sorted(table.items(), key=lambda item: item[1]['start'])
+         for num,part in items:
+             start  = part['start']
+-- 
+2.55.0
+

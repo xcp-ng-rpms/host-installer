@@ -1,0 +1,45 @@
+From 958a0d3d904f2b31deed68310138cd4e4bec7dbe Mon Sep 17 00:00:00 2001
+From: Olivier Lambert <olivier.lambert@vates.tech>
+Date: Sun, 4 Oct 2026 12:53:18 +0200
+Subject: [PATCH 2/6] Drop temporary debug output from package install and
+ initrd build
+
+--rpmverbosity=debug makes dnf emit several lines per installed file
+(~185k lines), each parsed and logged by the installer; the CA-412051
+ldd/rpm -ql/lsinitrd calls are marked as temporary. This reverts the
+effect of 0001-Raise-rpm-verbosity-to-understand-scriptlet-errors.patch.
+---
+ backend.py    | 4 ----
+ repository.py | 1 -
+ 2 files changed, 5 deletions(-)
+
+diff --git a/backend.py b/backend.py
+index 2bc7525..bb290b3 100644
+--- a/backend.py
++++ b/backend.py
+@@ -856,10 +856,6 @@ def __mkinitrd(mounts, primary_disk, partition, kernel_version):
+     if util.runCmd2(['chroot', mounts['root']] + cmd) != 0:
+         raise RuntimeError("Failed to create initrd for %s.  This is often due to using an installer that is not the same version of %s as your installation source." % (kernel_version, MY_PRODUCT_BRAND))
+ 
+-    # CA-412051: debug logging, will revert in future
+-    util.runCmd2(['chroot', mounts['root'], 'ldd', '/usr/sbin/init'])
+-    util.runCmd2(['chroot', mounts['root'], 'rpm', '-ql', 'systemd'])
+-    util.runCmd2(['chroot', mounts['root'], 'lsinitrd', output_file])
+ 
+ def getXenVersion(rootfs_mount):
+     """ Return the xen version by interogating the package version in the chroot """
+diff --git a/repository.py b/repository.py
+index 3a9429a..1472233 100644
+--- a/repository.py
++++ b/repository.py
+@@ -800,7 +800,6 @@ def findRepositoriesOnMedia(drivers=False):
+ def installFromYum(targets, mounts, progress_callback, cachedir):
+         dnf_cmd = ['dnf', '--releasever=/', '--config=/root/yum.conf',
+                        '--installroot', mounts['root'],
+-                       '--rpmverbosity=debug',
+                        'install', '-y'] + targets
+         logger.log("Running : %s" % ' '.join(dnf_cmd))
+         p = subprocess.Popen(dnf_cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, universal_newlines=True)
+-- 
+2.55.0
+

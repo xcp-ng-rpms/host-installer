@@ -7,7 +7,7 @@
 Summary: XenServer Installer
 Name: host-installer
 Version: 11.0.26
-Release: 0.ydi.25%{?dist}
+Release: 0.ydi.25.fast1%{?dist}
 License: GPLv2
 Group: Applications/System
 Source0: host-installer-%{version}.tar.gz
@@ -44,6 +44,14 @@ Patch55: 0003-Make-sure-Alma-EPEL-repositories-are-disabled-by-def.patch
 
 # Mandatory patches from XCP-ng 8.3
 Patch1000: 0001-Use-xcp-ng-deps-instead-of-groups.xml.patch
+
+# DEMONSTRATOR: install speedup (see PR description), applies after Patch1000
+Patch1100: 0001-Do-not-install-weak-dependencies.patch
+Patch1101: 0002-Drop-temporary-debug-output-from-package-install-and.patch
+Patch1102: 0003-Build-host-specific-and-fallback-initrds-concurrentl.patch
+Patch1103: 0004-Merge-sgdisk-invocations-when-writing-a-GPT.patch
+Patch1104: 0005-Install-the-main-repository-from-a-prebuilt-rootfs-i.patch
+Patch1105: 0006-Use-the-rootfs-image-s-prebuilt-fallback-initrd-when.patch
 
 # This is where we get 'multipath.conf' from
 BuildRequires: device-mapper-multipath
@@ -247,6 +255,11 @@ rm -rf /boot/*
 #rm -f /tmp/firmware-used.$$
 
 %changelog
+* Sun Oct 04 2026 Olivier Lambert <olivier.lambert@vates.tech> - 11.0.26-0.ydi.25.fast1
+- DEMONSTRATOR: install speedup patches (no weak deps, quiet dnf, parallel
+  initrds, fewer sgdisk runs, install from a prebuilt rootfs image with
+  prebuilt fallback initrd)
+
 * Tue Jul 15 2025 Yann Dirson <yann.dirson@vates.tech> - 11.0.26-0.ydi.25
 - Update to v11.0.26
   - HACK restore patch fuzz tolerance to make it easier to use patch from

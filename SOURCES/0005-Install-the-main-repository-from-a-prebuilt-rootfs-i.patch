@@ -1,0 +1,159 @@
+From 506df69bc12d6fd6a5f7bd1b0decc6c662d1309a Mon Sep 17 00:00:00 2001
+From: Olivier Lambert <olivier.lambert@vates.tech>
+Date: Sun, 4 Oct 2026 12:53:18 +0200
+Subject: [PATCH 5/6] Install the main repository from a prebuilt rootfs image
+ when available
+
+If the main repository ships rootfs.tar.zst (or rootfs.tar.gz), built at
+ISO creation time with the same dnf transaction, stream it into the
+target root filesystem instead of running dnf: ~8s instead of ~80s.
+ESP content is extracted through a staging directory (vfat cannot hold
+ownership). Other repositories (supplemental packs, driver disks) are
+still installed with dnf on top. Without an image, or with
+/tmp/no-rootfs-image, the dnf path is unchanged.
+
+The image is streamed through the repository accessor, so it also works
+for network installs (untested). zstd is preferred: smaller, and faster
+to unpack than gzip; it requires zstd in install.img.
+---
+ repository.py | 110 ++++++++++++++++++++++++++++++++++++++++++++------
+ 1 file changed, 97 insertions(+), 13 deletions(-)
+
+diff --git a/repository.py b/repository.py
+index 1472233..48c396b 100644
+--- a/repository.py
++++ b/repository.py
+@@ -856,6 +856,84 @@ def installFromYum(targets, mounts, progress_callback, cachedir):
+ 
+         shutil.rmtree(os.path.join(mounts['root'], cachedir), ignore_errors=True)
+ 
++# Packages EL10 only pulls in as weak dependencies; keep in sync with the
++# rootfs image build (should rather be Requires of xcp-ng-deps).
++MAIN_REPO_EXTRA_TARGETS = [
++    'e2fsprogs', 'xfsprogs', 'dosfstools', 'diffutils', 'jq', 'pigz',
++    'amd-ucode-firmware', 'realtek-firmware', 'amd-gpu-firmware',
++    'intel-gpu-firmware', 'nvidia-gpu-firmware', 'atheros-firmware',
++    'brcmfmac-firmware', 'mt7xxx-firmware', 'nxpwireless-firmware',
++    'tiwilink-firmware', 'intel-audio-firmware', 'cirrus-audio-firmware',
++    'polkit', 'tpm2-tools', 'unbound-anchor']
++
++# Prebuilt rootfs image formats, preferred first: (file name, decompressor)
++ROOTFS_IMAGES = [('rootfs.tar.zst', ['zstd', '-dc']),
++                 ('rootfs.tar.gz', ['pigz', '-dc'])]
++# Mount points prepared by backend.mountVolumes(): their (empty) image
++# counterparts must not be extracted over them.
++_ROOTFS_SKIP = ['./proc', './sys', './dev', './tmp', './mnt']
++_ROOTFS_ESP_STAGING = '.rootfs-image-esp'
++
++def _findRootfsImage(repo):
++    """ The (name, decompressor) of the prebuilt rootfs image the main
++    repository ships, in the best format this environment can unpack. """
++    if not isinstance(repo, MainYumRepository) or os.path.exists('/tmp/no-rootfs-image'):
++        return None
++    for name, decompress in ROOTFS_IMAGES:
++        if shutil.which(decompress[0]) and repo._accessor.access(name):
++            return name, decompress
++    return None
++
++def _unpackRootfsImage(repo, image, mounts, progress_callback):
++    """ Populate the target root filesystem from the prebuilt image (a tarball
++    of the main repository's package set, built with the same dnf transaction)
++    instead of installing packages one by one. The image is streamed, so this
++    works the same for local media and network repositories. """
++    root = mounts['root']
++    name, decompress = image
++    size = None
++    location = getattr(repo._accessor, 'location', None)
++    if location:
++        size = os.path.getsize(os.path.join(location, name))
++    logger.log("Installing from rootfs image %s (%s bytes)" % (name, size))
++
++    # ESP content goes through a staging directory: the ESP is vfat, which
++    # cannot hold ownership/permissions that tar would try to restore.
++    tar_cmd = ['tar', '-C', root, '-xpf', '-', '--numeric-owner', '--acls',
++               '--xattrs', "--xattrs-include=*",
++               r'--transform=s,^\./boot/efi\(/\|$\),./%s\1,' % _ROOTFS_ESP_STAGING]
++    tar_cmd += ['--exclude=%s' % d for d in _ROOTFS_SKIP]
++    unz = subprocess.Popen(decompress, stdin=subprocess.PIPE, stdout=subprocess.PIPE)
++    tar = subprocess.Popen(tar_cmd, stdin=unz.stdout, stderr=subprocess.PIPE)
++    unz.stdout.close()
++    src = repo._accessor.openAddress(name)
++    try:
++        done = 0
++        while True:
++            data = src.read(4 * 1024 * 1024)
++            if not data:
++                break
++            unz.stdin.write(data)
++            done += len(data)
++            if size:
++                progress_callback(int(done * 95.0 / size))
++    finally:
++        src.close()
++        unz.stdin.close()
++    tar_err = tar.communicate()[1]
++    if unz.wait() != 0 or tar.returncode != 0:
++        raise RuntimeError("Failed to unpack rootfs image (%s rc %d, tar rc %d): %s" %
++                           (decompress[0], unz.returncode, tar.returncode, tar_err.decode(errors='replace')))
++
++    staging = os.path.join(root, _ROOTFS_ESP_STAGING)
++    if os.path.isdir(staging):
++        if os.listdir(staging):
++            if util.runCmd2(['cp', '-r', '--preserve=timestamps', staging + '/.',
++                             os.path.join(root, 'boot', 'efi')]) != 0:
++                raise RuntimeError("Failed to copy ESP content from rootfs image")
++        shutil.rmtree(staging)
++    progress_callback(100)
++
+ def installFromRepos(progress_callback, repos, mounts):
+     """Install from a stacked set of repositories"""
+ 
+@@ -885,26 +963,32 @@ baseurl=%s
+                     yum_conf.write(repo_config)
+ 
+ 
++        repos_all = repos
+         repos[0].disableInitrdCreation(mounts['root'])
+         targets = []
++        image = _findRootfsImage(repos[0])
++        if image:
++            # The image holds the main repository's package set: only the
++            # other repositories (supplemental packs, drivers...) need dnf.
++            _unpackRootfsImage(repos[0], image, mounts, progress_callback)
++            repos = repos[1:]
++        else:
++            # With install_weak_deps=False, packages that EL10 only pulls in as
++            # Recommends must be requested explicitly (should move to xcp-ng-deps).
++            targets += MAIN_REPO_EXTRA_TARGETS
++
+         for repo in repos:
+             if repo._targets:
+                 targets += repo._targets
+-        # With install_weak_deps=False, packages that EL10 only pulls in as
+-        # Recommends must be requested explicitly (should move to xcp-ng-deps).
+-        targets += ['e2fsprogs', 'xfsprogs', 'dosfstools', 'diffutils', 'jq', 'pigz',
+-                    'amd-ucode-firmware', 'realtek-firmware', 'amd-gpu-firmware',
+-                    'intel-gpu-firmware', 'nvidia-gpu-firmware', 'atheros-firmware',
+-                    'brcmfmac-firmware', 'mt7xxx-firmware', 'nxpwireless-firmware',
+-                    'tiwilink-firmware', 'intel-audio-firmware', 'cirrus-audio-firmware',
+-                    'polkit', 'tpm2-tools', 'unbound-anchor']
+         targets = list(set(targets))
+ 
+-        installFromYum(targets, mounts, progress_callback, cachedir)
+-        # for some reason installing at the same time as some undetermined
+-        # other does not work, silently (hail DNF/RPM :sob:)
+-        installFromYum(['crypto-policies'], mounts, progress_callback, cachedir)
+-        repos[0].enableInitrdCreation()
++        if targets:
++            installFromYum(targets, mounts, progress_callback, cachedir)
++        if not image:
++            # for some reason installing at the same time as some undetermined
++            # other does not work, silently (hail DNF/RPM :sob:)
++            installFromYum(['crypto-policies'], mounts, progress_callback, cachedir)
++        repos_all[0].enableInitrdCreation()
+     finally:
+         for repo in repos:
+             repo._accessor.finish()
+-- 
+2.55.0
+
