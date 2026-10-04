@@ -1,0 +1,91 @@
+From a9138b3971a6340cf0ec2850269333f81e88d685 Mon Sep 17 00:00:00 2001
+From: Olivier Lambert <olivier.lambert@vates.tech>
+Date: Sun, 4 Oct 2026 12:53:18 +0200
+Subject: [PATCH 3/6] Build host-specific and fallback initrds concurrently
+
+Both dracut runs are independent and took ~26s + ~38s sequentially.
+Shared prerequisites (multipath wwids, dracut multipath conf) are
+written before either run starts.
+---
+ backend.py | 40 ++++++++++++++++++++++++++++++----------
+ 1 file changed, 30 insertions(+), 10 deletions(-)
+
+diff --git a/backend.py b/backend.py
+index bb290b3..a74f9de 100644
+--- a/backend.py
++++ b/backend.py
+@@ -190,8 +190,7 @@ def getFinalisationSequence(ans):
+                                'branding', 'net-admin-configuration', 'host-config', 'install-type'), []),
+         Task(writeXencommons, A(ans, 'control-domain-uuid', 'mounts'), []),
+         Task(configureISCSI, A(ans, 'mounts', 'primary-disk'), []),
+-        Task(mkinitrd, A(ans, 'mounts', 'primary-disk', 'primary-partnum'), []),
+-        Task(prepFallback, A(ans, 'mounts', 'primary-disk', 'primary-partnum'), []),
++        Task(buildInitrds, A(ans, 'mounts', 'primary-disk', 'primary-partnum'), []),
+         Task(installBootLoader, A(ans, 'mounts', 'primary-disk',
+                                   'boot-partnum', 'primary-partnum', 'branding',
+                                   'disk-label-suffix', 'bootloader-location', 'write-boot-entry', 'install-type',
+@@ -833,14 +832,7 @@ def _generateBFS(mounts, primary_disk): #pylint: disable=invalid-name
+ 
+     util.runCmd2(["chroot", mounts["root"], "/usr/sbin/multipath", "-a", wwid])
+ 
+-def __mkinitrd(mounts, primary_disk, partition, kernel_version):
+-    if isDeviceMapperNode(partition):
+-        # Generate a valid multipath configuration
+-        _generateBFS(mounts, primary_disk)
+-
+-    # Run dracut inside dom0 chroot
+-    output_file = os.path.join("/boot", "initrd-%s.img" % kernel_version)
+-
++def _writeDracutMultipathConf(mounts, partition):
+     # default to only including host specific kernel modules in initrd
+     # disable multipath on root partition
+     try:
+@@ -851,6 +843,16 @@ def __mkinitrd(mounts, primary_disk, partition, kernel_version):
+     except:
+         pass
+ 
++def __mkinitrd(mounts, primary_disk, partition, kernel_version):
++    if isDeviceMapperNode(partition):
++        # Generate a valid multipath configuration
++        _generateBFS(mounts, primary_disk)
++
++    # Run dracut inside dom0 chroot
++    output_file = os.path.join("/boot", "initrd-%s.img" % kernel_version)
++
++    _writeDracutMultipathConf(mounts, partition)
++
+     cmd = ['dracut', '--verbose', '-f', output_file, kernel_version]
+ 
+     if util.runCmd2(['chroot', mounts['root']] + cmd) != 0:
+@@ -976,10 +978,28 @@ def prepFallback(mounts, primary_disk, primary_partnum):
+     # Generate /boot/initrd-fallback.img.
+     cmd = ['dracut', '--verbose', '--add-drivers', ' '.join(modules), '--no-hostonly']
+     cmd += ['/boot/initrd-fallback.img', kernel_version]
++    return cmd
+ 
++def _buildFallbackInitrd(mounts, cmd):
+     if util.runCmd2(['chroot', mounts['root']] + cmd):
+         raise RuntimeError("Failed to generate fallback initrd")
+ 
++def buildInitrds(mounts, primary_disk, primary_partnum):
++    """ Build the host-specific and fallback initrds concurrently: both are
++    independent dracut runs and each is mostly single-threaded. """
++    import concurrent.futures
++    fallback_cmd = prepFallback(mounts, primary_disk, primary_partnum)
++    # Must be in place before either dracut run starts reading its config
++    partition = partitionDevice(primary_disk, primary_partnum)
++    if isDeviceMapperNode(partition):
++        _generateBFS(mounts, primary_disk)
++    _writeDracutMultipathConf(mounts, partition)
++    with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
++        futures = [executor.submit(mkinitrd, mounts, primary_disk, primary_partnum),
++                   executor.submit(_buildFallbackInitrd, mounts, fallback_cmd)]
++        for f in futures:
++            f.result()
++
+ 
+ def buildBootLoaderMenu(mounts, xen_version, xen_kernel_version, boot_config, serial, boot_serial, host_config, primary_disk, disk_label_suffix, fcoe_interfaces):
+     short_version = kernelShortVersion(xen_kernel_version)
+-- 
+2.55.0
+

@@ -1,0 +1,59 @@
+From c627e8299fd22fd655e56be55cf7c344710bbd76 Mon Sep 17 00:00:00 2001
+From: Olivier Lambert <olivier.lambert@vates.tech>
+Date: Sun, 4 Oct 2026 12:53:18 +0200
+Subject: [PATCH 6/6] Use the rootfs image's prebuilt fallback initrd when it
+ matches the kernel
+
+The fallback initrd is generic (no-hostonly); the image builds it once
+with all ethernet drivers instead of the installer's loaded modules,
+saving its ~38s dracut run. A marker records the kernel it was built
+for, so a kernel updated by an extra repository still gets a fresh one.
+---
+ backend.py | 20 ++++++++++++++++++--
+ 1 file changed, 18 insertions(+), 2 deletions(-)
+
+diff --git a/backend.py b/backend.py
+index a74f9de..d76948e 100644
+--- a/backend.py
++++ b/backend.py
+@@ -984,19 +984,35 @@ def _buildFallbackInitrd(mounts, cmd):
+     if util.runCmd2(['chroot', mounts['root']] + cmd):
+         raise RuntimeError("Failed to generate fallback initrd")
+ 
++PREBUILT_FALLBACK_KVER = 'usr/lib/xcp-ng-rootfs-image/initrd-fallback.kver'
++
++def _hasPrebuiltFallbackInitrd(mounts):
++    """ The rootfs image may ship a generic (no-hostonly, all ethernet
++    drivers) fallback initrd; use it if built for the kernel installed. """
++    marker = os.path.join(mounts['root'], PREBUILT_FALLBACK_KVER)
++    if not (os.path.exists(marker) and
++            os.path.exists(os.path.join(mounts['root'], 'boot/initrd-fallback.img'))):
++        return False
++    with open(marker) as f:
++        return f.read().strip() == getKernelVersion(mounts['root'])
++
+ def buildInitrds(mounts, primary_disk, primary_partnum):
+     """ Build the host-specific and fallback initrds concurrently: both are
+     independent dracut runs and each is mostly single-threaded. """
+     import concurrent.futures
+     fallback_cmd = prepFallback(mounts, primary_disk, primary_partnum)
++    if _hasPrebuiltFallbackInitrd(mounts):
++        logger.log("Using the fallback initrd prebuilt in the rootfs image")
++        fallback_cmd = None
+     # Must be in place before either dracut run starts reading its config
+     partition = partitionDevice(primary_disk, primary_partnum)
+     if isDeviceMapperNode(partition):
+         _generateBFS(mounts, primary_disk)
+     _writeDracutMultipathConf(mounts, partition)
+     with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
+-        futures = [executor.submit(mkinitrd, mounts, primary_disk, primary_partnum),
+-                   executor.submit(_buildFallbackInitrd, mounts, fallback_cmd)]
++        futures = [executor.submit(mkinitrd, mounts, primary_disk, primary_partnum)]
++        if fallback_cmd:
++            futures.append(executor.submit(_buildFallbackInitrd, mounts, fallback_cmd))
+         for f in futures:
+             f.result()
+ 
+-- 
+2.55.0
+
