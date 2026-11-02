@@ -7,7 +7,7 @@
 Summary: XenServer Installer
 Name: host-installer
 Version: 11.0.26
-Release: 0.ydi.25%{?dist}
+Release: 0.ydi.26%{?dist}
 License: GPLv2
 Group: Applications/System
 Source0: host-installer-%{version}.tar.gz
@@ -75,6 +75,8 @@ Requires: pyOpenSSL
 Requires: dnf
 
 Requires: dmv-utils
+
+Requires: systemd-networkd
 
 Requires(post): initscripts
 
@@ -247,7 +249,7 @@ rm -rf /boot/*
 #rm -f /tmp/firmware-used.$$
 
 %changelog
-* Tue Jul 15 2025 Yann Dirson <yann.dirson@vates.tech> - 11.0.26-0.ydi.25
+* Tue Jul 15 2025 Yann Dirson <yann.dirson@vates.tech> - 11.0.26-0.ydi.26
 - Update to v11.0.26
   - HACK restore patch fuzz tolerance to make it easier to use patch from
     different branches
@@ -281,6 +283,7 @@ rm -rf /boot/*
 - TEMP HACK point to some multipath.conf so "make install" passes
 - Make sure Alma/EPEL repositories on host are disabled by default
 - Requires: dmv-utils
+- Requires: systemd-networkd
 
 * Wed Jun 04 2025 Yann Dirson <yann.dirson@vates.tech> - 10.10.29.xcpng.3-1
 - Update to v10.10.29.xcpng.3 release:
