@@ -3,47 +3,50 @@
 
 Summary: XenServer Installer
 Name: host-installer
-Version: 10.10.38.xcpng.4
-Release: 1%{?dist}
+Version: 11.2.0
+Release: 1.1%{?xsrel}%{?dist}
 License: GPLv2
 Group: Applications/System
 Source0: host-installer-%{version}.tar.gz
 
+BuildArch: noarch
 # This is where we get 'multipath.conf' from
-BuildRequires: sm xenserver-multipath xenserver-lvm2
-BuildRequires: python-six python-mock
-BuildRequires: xcp-python-libs
+BuildRequires: xenserver-multipath xenserver-lvm2
 
+Requires: python-unversioned-command
 Requires: xenserver-multipath xenserver-lvm2 iscsi-initiator-utils
+
+# For network management
+Requires: systemd-networkd
+Requires: systemd-resolved
 
 # partitioning tools
 Requires: gdisk kpartx e2fsprogs dosfstools
 
 # CUI interface
-Requires: newt-python newt
-Requires: ethtool sdparm pciutils eject net-tools xenserver-biosdevname
-Requires: xcp-python-libs python-simplejson
+Requires: python3-newt
+Requires: ethtool sdparm pciutils eject xenserver-biosdevname
+Requires: python3-xcp-libs python%{python3_pkgversion}-simplejson
 
 # archives used
-Requires: bzip2 tar gzip rpm
+Requires: bzip2 tar gzip rpm pigz
 
 # For killall
 Requires: psmisc
 
-# IPv6
-Requires: ndisc6
+# # IPv6
+# Requires: ndisc6
+#
+# # LINSTOR
+# Requires: yum-utils
 
-Requires: python-six
-Requires: pyOpenSSL
+# For rpm installation
+Requires: dnf
 
-# LINSTOR
-Requires: yum-utils
+# For driver multi version
+Requires: dmv-utils
 
-Requires(post): initscripts
-
-# Strictly no byte compiling python. Python in the install
-# environment is different to the dom0 chroot
-%global __os_install_post %(echo '%{__os_install_post}' | sed -e 's!/usr/lib[^[:space:]]*/brp-python-bytecompile[[:space:]].*$!!g')
+%{?systemd_requires}
 
 %define installer_dir /opt/xensource/installer
 %define feature_flag_dir /etc/xensource/features
@@ -61,7 +64,7 @@ Summary: XenServer Installer
 Group: Applications/System
 Requires: host-installer
 Requires: openssh-server
-Requires(post): initscripts
+%{?systemd_requires}
 %description startup
 XenServer installer startup files
 
@@ -84,7 +87,8 @@ test/test.sh
 %install
 rm -rf %{buildroot}
 
-make install DESTDIR=%{buildroot} INSTALLER_DIR=%{installer_dir} SM_ROOTDIR=
+# Installer files
+make DESTDIR=%{buildroot} install
 %if %{without depmod}
 # Stop messing with depmod
 rm %{buildroot}/etc/depmod.d/depmod.conf
@@ -92,6 +96,7 @@ rm %{buildroot}/etc/systemd/system/systemd-udevd.d/installer.conf
 rmdir %{buildroot}/etc/depmod.d/ %{buildroot}/etc/systemd/system/systemd-udevd.d/
 %endif
 
+# Install feature flags
 mkdir -p %{buildroot}/%{feature_flag_dir}
 # XCP-ng: no supplemental packs feature
 # touch %{buildroot}/%{feature_flag_dir}/supplemental-packs
@@ -112,25 +117,22 @@ echo %{large_block_capable_sr_type} > %{buildroot}/%{feature_flag_dir}/large-blo
 %{installer_dir}/constants.py
 %{installer_dir}/disktools.py
 %{installer_dir}/diskutil.py
+%{installer_dir}/dmvutil.py
 %{installer_dir}/driver.py
 %{installer_dir}/generalui.py
 %{installer_dir}/hardware.py
-%{installer_dir}/init_constants.py
 %{installer_dir}/install.py
 %{installer_dir}/netinterface.py
 %{installer_dir}/netutil.py
 %{installer_dir}/product.py
-%{installer_dir}/ppexpect.py
 %{installer_dir}/repository.py
 %{installer_dir}/restore.py
 %{installer_dir}/scripts.py
-%{installer_dir}/shrinklvm.py
 %{installer_dir}/snackutil.py
 %{installer_dir}/uicontroller.py
 %{installer_dir}/upgrade.py
 %{installer_dir}/util.py
 %{installer_dir}/xelogging.py
-%{installer_dir}/fcoeutil.py
 
 # Installer UI
 %{installer_dir}/tui/__init__.py
@@ -140,13 +142,13 @@ echo %{large_block_capable_sr_type} > %{buildroot}/%{feature_flag_dir}/large-blo
 %{installer_dir}/tui/network.py
 %{installer_dir}/tui/progress.py
 %{installer_dir}/tui/repo.py
-%{installer_dir}/tui/fcoe.py
 
 # Data
 %{installer_dir}/common_criteria_firewall_rules
 %{installer_dir}/keymaps
 %{installer_dir}/timezones
-%config /etc/multipath.conf.disabled
+%config /etc/multipath.conf.enabled
+%config /etc/multipath.conf.ifmultiple
 /etc/dracut.conf.d/installer.conf
 
 # Feature Flags
@@ -157,16 +159,14 @@ echo %{large_block_capable_sr_type} > %{buildroot}/%{feature_flag_dir}/large-blo
 %files startup
 %defattr(775,root,root,-)
 
-/etc/init.d/*
-%{installer_dir}/preinit
+%{installer_dir}/{preinit,functions}
 %attr(755,root,root) %{installer_dir}/S05ramdisk
 
 %defattr(664,root,root,775)
 /etc/modprobe.d/*
 /etc/modules-load.d/iscsi.conf
-%if %{with depmod}
-/etc/depmod.d/depmod.conf
 
+%if %{with depmod}
 /etc/systemd/system/*/installer.conf
 %endif
 
@@ -176,7 +176,6 @@ echo %{large_block_capable_sr_type} > %{buildroot}/%{feature_flag_dir}/large-blo
 %defattr(444,root,root,-)
 %{efi_dir}/grub.cfg
 %{efi_dir}/grub-usb.cfg
-/boot/isolinux/isolinux.cfg
 
 %post
 # these are started by the installer
@@ -192,30 +191,235 @@ echo %{large_block_capable_sr_type} > %{buildroot}/%{feature_flag_dir}/large-blo
 /usr/bin/systemctl disable lvm2-lvmetad
 /usr/bin/systemctl disable lvm2-monitor
 
-%post startup
-/sbin/chkconfig --add early-blacklist
-/sbin/chkconfig --add interface-rename-sideway
-
-%triggerin -- kernel, kernel-alt
-rm -rf /boot/*
-rm -rf /usr/lib/modules/*/kernel/{drivers/infiniband,fs/{autofs4,btrfs,cramfs,exofs,gfs2,jfs,nfsd,ntfs,ocfs2,reiserfs,ufs,xfs}}
-
-%triggerin -- xen-hypervisor
-rm -rf /boot/*
-
-%triggerin -- linux-firmware
-basename -a $(find /lib/modules -type f -name '*.ko' | xargs modinfo --field firmware) | sort -u >/tmp/firmware-used.$$
-for f in $(find /lib/firmware/ -type f); do
-   b=$(basename $f)
-   # keep files referenced by modinfo
-   grep -q $b /tmp/firmware-used.$$ && continue
-   # keep files referenced by modules
-   grep -qr $b /lib/modules && continue
-   rm -f $f
-done
-rm -f /tmp/firmware-used.$$
-
 %changelog
+* Tue Nov 03 2026 Yann Dirson <yann.dirson@vates.tech> - 11.2.0-1.1
+- Update to v11.2.0-1 xenserver release
+- Upstream changelog (since v10.10.8-3):
+  * Fri Sep 04 2026 Tim Smith <tim.smith@citrix.com> - 11.2.0-1
+  - Remove mcelog configuration
+  - CP-311882: Remove safe mode boot option
+  - Refactor common_xen_unsafe_params into common_xen_params
+  - CP-313559 Support default use of grub-mkconfig if requested by install
+
+  * Fri Apr 17 2026 Ming Lu <ming.lu@citrix.com> - 11.1.8-1
+  - Retain trusted TLS certificates in RPU
+
+  * Fri Mar 13 2026 Stephen Cheng <stephen.cheng@citrix.com> - 11.1.7-1
+  - CA-375347: Increase crash kernel memory
+
+  * Thu Mar 05 2026 Lin Liu <lin.liu01@citrix.com> - 11.1.6-1
+  - CA-424191: Failed to create multipathed iSCSI SR on multipathed iSCSI booted machine
+
+  * Fri Feb 13 2026 Ross Lagerwall <ross.lagerwall@citrix.com> - 11.1.5-1
+  - CA-423762: Add an "if-multiple" option for device-mapper-multipath
+  - CA-421841: Fail explicitly when disk is missing
+
+  * Mon Dec 15 2025 Changlei Li <changlei.li@cloud.com> - 11.1.4-1
+  - CA-417495 Clean NTP servers in chrony.conf when disable NTP
+  - CA-421646 Recognize NTP none mode before upgrade
+  - CA-416612 Handle net-admin-interface when upgrade
+  - CA-421979 Fix import error
+
+  * Tue Nov 25 2025 Lin Liu <lin.liu01@citrix.com> - 11.1.2-1
+  - CP-310158: Revert kernel mitigation from cmdline as mitigated in kernel
+
+  * Wed Nov 19 2025 Deli Zhang <deli.zhang@citrix.com> - 11.1.1-1
+  - CA-417389: Restore NRPE and SNMP service links when RPU
+  - CA-420513: Add AnswerfileException for non-existing admin-interface
+
+  * Tue Nov 04 2025 Changlei Li <changlel.li@cloud.com> - 11.1.0-1
+  - CP-54081: Remove interface-rename-sideway service
+  - CP-53716: Drop ordering and renaming network interface
+  - CP-53840: Do not write mgmt interface info in xensource-inventory
+  - CA-410647: Displaying select network interface should order by name
+  - CP-54444: Handle upgrade from interface-rename-service
+  - CP-307931: Remove unused net-admin-interface key
+  - CA-416373: Virtual interface name exceed the limitation
+  - CP-310010: Get interface mac from interface-rename-data
+
+  * Fri Oct 10 2025 Ross Lagerwall <ross.lagerwall@citrix.com> - 11.0.35-1
+  - CA-416618: Support degraded SW RAID installations
+  - CA-417721: Do not check chrony-dhcp server file path
+  - CA-415170: Fix multipath on XS9
+  - CP-308804: Enable multipath by default
+
+  * Fri Sep 26 2025 Lin Liu <Lin.Liu01@cloud.com> - 11.0.34-1
+  - CA-411898: Turn off retbleed for disk throughputs performance
+
+  * Mon Sep 22 2025 Lin Liu <Lin.Liu01@cloud.com> - 11.0.33-1
+  - CA-416806: Turn off srso mitigation for performance
+  - CA-417508: Fix pressing back from EUA
+
+  * Thu Aug 14 2025 Lin Liu <Lin.Liu01@cloud.com> - 11.0.31-1
+  - CA-413099: Preserve /var/lib/xcp/verify-certificates during RPU
+
+  * Tue Aug 12 2025 Gerald Elder-Vass <gerald.elder-vass@cloud.com> - 11.0.30-1
+  - CP-308812: Add new Answerfile label ssh-mode to control SSH status
+  - CP-308408: force use of OVS in XS 9
+  - CP-54461: Add SWRAID restore functionality
+  - CP-54461: Upgrade support for SWRAID installations
+  - Always mount efi/esp during restore
+  - CP-54459: Setup the SW RAID device
+
+  * Thu Jul 31 2025 Ross Lagerwall <ross.lagerwall@citrix.com> - 11.0.29-1
+  - CP-308428: Use xen_boot GRUB loader to boot Xen
+
+  * Thu Jul 31 2025 Chunjie Zhu <chunjie.zhu@cloud.com> - 11.0.28-1
+  - CA-414146: Fix restore partnum identification
+  - CA-414415: fix crash if selected-multiversion-drivers is empty
+
+  * Tue Jul 29 2025 Stephen Cheng <stephen.cheng@cloud.com> - 11.0.27-1
+  - CA-413008: fix variant selection bug
+  - Give a more explicit message when DNF gets killed
+  - upgrade: allow preserving symbolic links
+  - upgrade: restore saved firewall-port plugin state
+  - Fix first partition check
+  - CP-53110: Put driver disk feature behind a feature flag
+  - CP-48540: Remove support for FCoE
+
+  * Wed Jul 02 2025 Stephen Cheng <stephen.cheng@cloud.com> - 11.0.26-1
+  - CA-413195: Fixed parsing pci data issue
+
+  * Mon Jun 30 2025 Chunjie Zhu <chunjie.zhu@cloud.com> - 11.0.25-1
+  - CP-52190: add DMV function
+  - CA-400058: Fail if there is no first partition to preserve when requested
+  - CA-412051: Add debug logs for libsystemd-core.so link issue
+  - Identify all SR types correctly when probing the disk
+  - CA-409830: Confirm when overwriting an SR
+  - Raise an exception if there are multiple SRs on a single disk
+  - CP-308434: Add a new script to install additional packages
+
+  * Wed Jun 11 2025 Lin Liu <Lin.Liu01@cloud.com> - 11.0.24-1
+  - CA-410594: Settle udev after eject
+  - CA-411085: Fix issue of pv name is device link
+  - CA-411650: Fix disk partition re issue for disk path
+  - CA-411987: Migrate dnf group `driver` check from yum to dnf
+
+  * Wed May 14 2025 Stephen Cheng <stephen.cheng@cloud.com> - 11.0.23-1
+  - CP-54774: Prevent upgrade if corosync 2 is in use
+
+  * Thu May 01 2025 Frediano Ziglio <frediano.ziglio@cloud.com> - 11.0.22-1
+  - CP-307868: Boot xen.efi rather than xen.pe
+
+  * Wed Apr 16 2025 Ross Lagerwall <ross.lagerwall@citrix.com> - 11.0.21-1
+  - CA-402028: Boot xen.pe rather than xen.gz
+  - Remove unused parameters passed to prepareUpgrade
+  - Remove unused imports of "repository"
+  - XSI-1863: Use a disk size of zero if a disk size cannot be determined
+  - CP-54099: Clean unused stderr file for dnf
+  - Fix bytes/string mismatch
+  - CP-53418: Drop ucode argument from Xen command-line
+  - Correct name for renamed "fs_type" variable
+
+  * Tue Mar 18 2025 Frediano Ziglio <frediano.ziglio@cloud.com> - 11.0.20-1
+  - CA-405400: Quote username and password in yum configuration
+  - CP-53844: Fix writing file downloaded from a URL
+  - Update parsing for DNF and fdisk commands
+  - doc/answerfile: clarify and fix description of --network_device
+  - buildRestoreList: include xapi-stunnel-ca-bundle.pem
+  - CA-408238: Support basic authentication to HTTP server with different port
+
+  * Mon Mar 03 2025 Stephen Cheng <stephen.cheng@cloud.com> - 11.0.19-1
+  - CA-407115: Remove invalid arguments from memtest86+
+
+  * Mon Feb 24 2025 Ross Lagerwall <ross.lagerwall@citrix.com> - 11.0.18-1
+  - CA-404794: Require an IPv4 address for the network to be up
+
+  * Thu Feb 20 2025 Lin Liu <Lin.Liu01@cloud.com> - 11.0.17-1
+  - CP-53300: Add memtest86 to boot menu
+
+  * Tue Jan 28 2025 Alex Brett <alex.brett@cloud.com> - 11.0.16-1
+  - CA-405458: Remove dependency on sm
+
+  * Mon Jan 27 2025 Alex Brett <alex.brett@cloud.com> - 11.0.15-1
+  - CA-405390: Update host-installer to work with dnf5
+
+  * Thu Jan 23 2025 Alex Brett <alex.brett@cloud.com> - 11.0.14-2
+  - CP-53379: Remove dependency on net-tools
+
+  * Wed Jan 08 2025 Lin Liu <Lin.Liu01@cloud.com> - 11.0.14-1
+  - CA-404297: Should not bring up extra interfaces
+
+  * Thu Dec 19 2024 Lin Liu <Lin.Liu01@cloud.com> - 11.0.13-1
+  - CP-52793: Replace sm-multipath from sm
+
+  * Thu Dec 12 2024 Lin Liu <Lin.Liu01@cloud.com> - 11.0.12-1
+  - CP-50546: Migrate initscripts to systemd
+  - CP-52458: Remove BIOS related code from host-installer
+  - CP-31055: Optional EXT4 Support
+  - __mkinitrd: pass -f to dracut
+  - Ensure esp mount point is known before setting EFI boot entries
+
+  * Thu Oct 31 2024 Alex Brett <alex.brett@cloud.com> - 11.0.11-2
+  - CP-52062: Remove triggerin workarounds from previous slipstream logic
+
+  * Tue Sep 24 2024 Deli Zhang <deli.zhang@cloud.com> - 11.0.11-1
+  - CP-50298: Support restoring dir to specified mode and user/group attributes
+
+  * Fri Aug 2 2024 Lin Liu <Lin.Liu01@cloud.com> - 11.0.10-1
+  - CA-392317: Make sure kernel is up to date using Gdisk
+  - CP-27521: Set Partition Labels
+  - Preserve more stunnel certificates on upgrade
+  - CA-395582: Fix installation with multipath enabled
+  - CP-45747: Allow 4KN-capable SR type to be used
+
+  * Mon May 27 2024 Lin Liu <Lin.Liu01@cloud.com> - 11.0.9-1
+  - CP-45668: Boot shim instead of grub
+  - CP-47745: Detect EFI shim presence dynamically
+  - CA-392333: Do not use host-only fallback initrd
+  - CA-392421: Support DNF output parsing correctly
+  - CA-389863: Speed up installation with newer systemd
+  - CA-391659: Preserve hidden flag updating GPT partitions
+  - CA-391027: Mount devices specified by mount= only when needed
+  - CA-392916: Create directory for mount= option
+
+  * Tue Apr 16 2024 Lin Liu <Lin.Liu01@cloud.com> - 11.0.7-1
+  - Fix RuntimeError: dictionary changed size during iteration
+  - CP-47625: Replace mkinitrd with dracut command
+  - Introduce pigz to improve initrd compress performance
+
+  * Mon Mar 11 2024 Deli Zhang <deli.zhang@cloud.com> - 11.0.6-1
+  - CP-48077: Add require of python-unversioned-command and remove interpreter check
+
+  * Mon Mar 4 2024 Lin Liu <lin.liu@citrix.com> - 11.0.5-1
+  - Fixup preserve pool certificates across upgrades issue
+
+  * Mon Mar 4 2024 Lin Liu <lin.liu@citrix.com> - 11.0.4-1
+  - CP-47621: Enable ability to set hostname from DHCP
+  - CA-389160: Filter secrets and sensitive data
+  - Preserve pool certificates across RPUs
+  - Some code refine and typo fixes
+
+  * Mon Jan 29 2024 Lin Liu <lin.liu@citrix.com> - 11.0.3-1
+  - CA-385350 Fix handling of NTP configuration over upgrade
+  - Use explicit integer division where necessary
+  - Drop depmod config files
+  - CA-384621: Do not move partition to preserve data
+  - disktool: Optionally dump old/new partitions during commit
+  - Simplify disk size constants
+  - Include mmcblk-devices in disk selection
+  - CP-37929: Remove legacy logrotate mechanism
+  - CP-44441: Restore SNMP service config
+  - Fix sector computation for disk with sector size not 512
+  - CP-44276: Fix download file error
+  - CP-46009: Fix verify source checksum
+
+  * Wed Nov 8 2023 Lin Liu <lin.liu@citrix.com> - 11.0.2-1
+  - CA-384265: Remove use of cmp to fix XS9 installation
+  - XSI-1498: Log any exceptions parsing existing bootloader config
+
+  * Tue Oct 17 2023 Lin Liu <lin.liu@citrix.com> - 11.0.1-1
+  - CP-44556: Update to install xs9
+
+  * Tue Oct 03 2023 Gerald Elder-Vass <gerald.elder-vass@citrix.com> - 11.0.0-2
+  - CP-41302: Remove clean as it fails XS9 RPM linter
+
+  * Mon Sep 25 2023 Gerald Elder-Vass <gerald.elder-vass@citrix.com> - 11.0.0-1
+  - CP-41302: Upgrade to Python3
+
+  * Thu Aug 17 2023 Gerald Elder-Vass <gerald.elder-vass@cloud.com> - 10.10.8-3
+  - CA-381594: Fix release number in koji
+
 * Wed Aug 05 2026 Yann Dirson <yann.dirson@vates.tech> - 10.10.38.xcpng.4-1
 - Update to v10.10.38.xcpng.4 release:
   - Fix linstor ugrade to pull specific version of xcp-ng-linstor
