@@ -1,14 +1,14 @@
-%global package_speccommit 06db0f595080eaa0b344f6991d0dcb812d45c58b
+%global package_speccommit 976be97f29db4020f602f9d6a2ef03a32e291e62
 %{!?xsrel: %global xsrel 1}
-%global package_srccommit v11.1.7
+%global package_srccommit v11.1.8
 
 Summary: XenServer Installer
 Name: host-installer
-Version: 11.1.7
+Version: 11.1.8
 Release: %{?xsrel}%{?dist}
 License: GPLv2
 Group: Applications/System
-Source0: host-installer-11.1.7.tar.gz
+Source0: host-installer-11.1.8.tar.gz
 
 BuildArch: noarch
 # This is where we get 'multipath.conf' from
@@ -175,6 +175,9 @@ echo %{large_block_capable_sr_type} > %{buildroot}/%{feature_flag_dir}/large-blo
 /usr/bin/systemctl disable lvm2-monitor
 
 %changelog
+* Fri Apr 17 2026 Ming Lu <ming.lu@citrix.com> - 11.1.8-1
+- Retain trusted TLS certificates in RPU
+
 * Fri Mar 13 2026 Stephen Cheng <stephen.cheng@citrix.com> - 11.1.7-1
 - CA-375347: Increase crash kernel memory
 
