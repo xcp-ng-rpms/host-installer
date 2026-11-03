@@ -1,14 +1,13 @@
-%global package_speccommit 976be97f29db4020f602f9d6a2ef03a32e291e62
-%{!?xsrel: %global xsrel 1}
-%global package_srccommit v11.1.8
+%global package_speccommit ee263aecdfc8f20b814c22e3e1c99f15ed3c330c
+%global package_srccommit v11.2.0
 
 Summary: XenServer Installer
 Name: host-installer
-Version: 11.1.8
-Release: %{?xsrel}%{?dist}
+Version: 11.2.0
+Release: 1%{?xsrel}%{?dist}
 License: GPLv2
 Group: Applications/System
-Source0: host-installer-11.1.8.tar.gz
+Source0: host-installer-11.2.0.tar.gz
 
 BuildArch: noarch
 # This is where we get 'multipath.conf' from
@@ -175,6 +174,12 @@ echo %{large_block_capable_sr_type} > %{buildroot}/%{feature_flag_dir}/large-blo
 /usr/bin/systemctl disable lvm2-monitor
 
 %changelog
+* Fri Sep 04 2026 Tim Smith <tim.smith@citrix.com> - 11.2.0-1
+- Remove mcelog configuration
+- CP-311882: Remove safe mode boot option
+- Refactor common_xen_unsafe_params into common_xen_params
+- CP-313559 Support default use of grub-mkconfig if requested by install
+
 * Fri Apr 17 2026 Ming Lu <ming.lu@citrix.com> - 11.1.8-1
 - Retain trusted TLS certificates in RPU
 
