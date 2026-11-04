@@ -81,8 +81,8 @@ XenServer installer bootloader files
 
 %build
 
-%check
-test/test.sh
+# %check
+# test/test.sh
 
 %install
 rm -rf %{buildroot}
@@ -198,6 +198,7 @@ echo %{large_block_capable_sr_type} > %{buildroot}/%{feature_flag_dir}/large-blo
 - TEMP HACK remove dependency on device-mapper-multipath, which needs work
 - TEMP HACK depend on lvm2 not xenserver-lvm2, which needs work
 - TEMP HACK point to some multipath.conf so "make install" passes
+- TEMP HACK do not run non-existing test script
 - Upstream changelog (since v10.10.8-3):
   * Fri Sep 04 2026 Tim Smith <tim.smith@citrix.com> - 11.2.0-1
   - Remove mcelog configuration
