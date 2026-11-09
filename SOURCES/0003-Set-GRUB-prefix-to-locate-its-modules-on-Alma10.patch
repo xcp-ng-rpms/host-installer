@@ -1,15 +1,18 @@
-From 9f5fa088b5af3259ccd3f2a7337cb16df87f11df Mon Sep 17 00:00:00 2001
+From ee7b347e392c914a79f87ebf8d89fa542c2887ca Mon Sep 17 00:00:00 2001
 From: Yann Dirson <yann.dirson@vates.tech>
 Date: Fri, 25 Jul 2025 14:42:32 +0200
-Subject: [PATCH 04/10] Set GRUB prefix to locate its modules on Alma10
+Subject: [PATCH 3/8] Set GRUB prefix to locate its modules on Alma10
 
+XS9 does not enable GRUB modules so we have to handle this ourselves.
+
+Signed-off-by: Yann Dirson <yann.dirson@vates.tech>
 ---
  backend.py  | 9 +++++++--
  diskutil.py | 9 +++++++++
  2 files changed, 16 insertions(+), 2 deletions(-)
 
 diff --git a/backend.py b/backend.py
-index 1d667cc..1da5c0e 100644
+index 09f3164..bc3d660 100644
 --- a/backend.py
 +++ b/backend.py
 @@ -1167,13 +1167,19 @@ def installBootLoader(mounts, disk, primary_partnum,

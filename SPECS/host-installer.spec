@@ -15,16 +15,14 @@ BuildArch: noarch
 Patch0001: 0001-Use-xcp-ng-deps-instead-of-groups.xml.patch
 
 # adjustment to Alma10
-Patch1000: 0002-Use-EFI-almalinux.patch
-Patch1001: 0003-Boot-on-Alma10.patch
-Patch1002: 0004-Set-GRUB-prefix-to-locate-its-modules-on-Alma10.patch
-Patch1003: 0005-Add-an-XCP-ng-9-specific-finalization-task.patch
-Patch1004: 0006-Second-dnf-install-run-for-crypto-policies.patch
-Patch1005: 0007-Switch-grub-config-back-to-multiboot2.patch
+Patch0002: 0002-Use-EFI-almalinux.patch
+Patch0003: 0003-Set-GRUB-prefix-to-locate-its-modules-on-Alma10.patch
+Patch0004: 0004-Switch-grub-config-back-to-multiboot2-to-boot-on-Alm.patch
+Patch0005: 0005-Second-dnf-install-run-for-crypto-policies.patch
 # pr#278
-Patch1006: 0008-Force-switch-tty-to-UTF-8-not-ISO-8859-1.patch
-Patch1007: 0009-Parametrize-kernel-package-name-set-to-kernel-xcpng.patch
-Patch1008: 0010-Raise-rpm-verbosity-to-understand-scriptlet-errors.patch
+Patch1006: 0006-Force-switch-tty-to-UTF-8-not-ISO-8859-1.patch
+Patch1007: 0007-Parametrize-kernel-package-name-set-to-kernel-xcpng.patch
+Patch1008: 0008-Raise-rpm-verbosity-to-understand-scriptlet-errors.patch
 
 # This is where we get 'multipath.conf' from
 BuildRequires: device-mapper-multipath

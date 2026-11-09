@@ -1,9 +1,9 @@
-From 25a0f7eada980cc0024c3e5a5b7db56974667e4a Mon Sep 17 00:00:00 2001
+From 5e763cde50838ed2f0ca9fc3c239c8dd8ffd9bae Mon Sep 17 00:00:00 2001
 From: Yann Dirson <yann.dirson@vates.tech>
 Date: Fri, 22 Aug 2025 15:06:43 +0200
-Subject: [PATCH 06/10] Second "dnf install" run for crypto-policies
+Subject: [PATCH 5/8] Second "dnf install" run for crypto-policies
 
-This is a huge hack, not easy to put in configureXcpng.
+This is a huge hack.
 ---
  repository.py | 3 +++
  1 file changed, 3 insertions(+)

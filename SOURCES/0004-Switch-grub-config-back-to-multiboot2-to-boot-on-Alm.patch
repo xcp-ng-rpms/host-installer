@@ -1,41 +1,80 @@
-From c708c9f008c9f45cb0dcef83d51a887ce494a45b Mon Sep 17 00:00:00 2001
+From e4b7e68afa206de8d95b9e36fef48ddd5339de7e Mon Sep 17 00:00:00 2001
 From: Yann Dirson <yann.dirson@vates.tech>
-Date: Wed, 4 Nov 2026 14:34:06 +0100
-Subject: [PATCH 07/10] Switch grub config back to multiboot2
+Date: Thu, 24 Jul 2025 16:01:33 +0200
+Subject: [PATCH 4/8] Switch grub config back to multiboot2 to boot on Alma10
 
-This reverts commit 37157e195f7ac4b99812ce2fabf1ae99cd119349
-("CP-308428: Use the xen_boot loader at install time"), and explicitly
-requests multiboot2 entries rather than xen_boot which is not in
-Alma's grub2.
+* this reverts commit 37157e195f7ac4b99812ce2fabf1ae99cd119349
+  ("CP-308428: Use the xen_boot loader at install time"), and explicitly
+  requests multiboot2 entries rather than xen_boot which is not in
+  Alma's grub2
+* explicitly load multiboot2 module (XS9 has disabled grub modules)
+* xen.efi cannot yet be booted using multiboot2, stay with xen.gz
+* use full name for vmlinuz and initrd, not the XS custom symlink
 ---
- backend.py                |  8 ++++----
+ backend.py                | 30 +++++++++++++++---------------
  bootloader/grub-usb.patch |  2 +-
  bootloader/grub.cfg       | 24 ++++++++++++------------
- 3 files changed, 17 insertions(+), 17 deletions(-)
+ 3 files changed, 28 insertions(+), 28 deletions(-)
 
 diff --git a/backend.py b/backend.py
-index 317f28b..574647d 100644
+index bc3d660..8cc9d65 100644
 --- a/backend.py
 +++ b/backend.py
-@@ -1087,7 +1087,7 @@ def buildBootLoaderMenu(mounts, xen_version, xen_kernel_version, boot_config, se
+@@ -1004,10 +1004,10 @@ def mkinitrd(mounts, primary_disk, primary_partnum):
+ def prepFallback(mounts, primary_disk, primary_partnum):
+     kernel_version =  getKernelVersion(mounts['root'])
+ 
+-    # Copy /boot/xen-xxxx.efi to /boot/xen-fallback.efi
+-    xen_efi = os.path.realpath(mounts['root'] + "/boot/xen.efi")
++    # Copy /boot/xen-xxxx.gz to /boot/xen-fallback.gz
++    xen_efi = os.path.realpath(mounts['root'] + "/boot/xen.gz")
+     src = os.path.join(mounts['root'], "boot", os.path.basename(xen_efi))
+-    dst = os.path.join(mounts['root'], 'boot/xen-fallback.efi')
++    dst = os.path.join(mounts['root'], 'boot/xen-fallback.gz')
+     shutil.copyfile(src, dst)
+ 
+     # Copy /boot/vmlinuz-yyyy to /boot/vmlinuz-fallback
+@@ -1080,23 +1080,23 @@ def buildBootLoaderMenu(mounts, xen_version, xen_kernel_version, boot_config, se
+     xs_kernel_safemode = []
+     xs_kernel_safemode += xs_kernel_core
+ 
+-    e = bootloader.MenuEntry(hypervisor="/boot/xen.efi",
++    e = bootloader.MenuEntry(hypervisor="/boot/xen.gz",
+                              hypervisor_args=' '.join(xs_xen_core + xs_xen_shared + ["console=vga"]),
+-                             kernel="/boot/vmlinuz-%s-xen" % short_version,
++                             kernel=f"/boot/vmlinuz-{xen_kernel_version}",
                               kernel_args=' '.join(kernel_rootdisk + xs_kernel_core + kernel_console_vga + ["quiet"]),
-                              initrd=f"/boot/initrd-{xen_kernel_version}.img", title=MY_PRODUCT_BRAND,
+-                             initrd="/boot/initrd-%s-xen.img" % short_version, title=MY_PRODUCT_BRAND,
++                             initrd=f"/boot/initrd-{xen_kernel_version}.img", title=MY_PRODUCT_BRAND,
                               root=constants.rootfs_label%disk_label_suffix)
 -    e.entry_format = Grub2Format.XEN_BOOT
 +    e.entry_format = Grub2Format.MULTIBOOT2
      boot_config.append("xe", e)
      boot_config.default = "xe"
      if serial:
-@@ -1097,7 +1097,7 @@ def buildBootLoaderMenu(mounts, xen_version, xen_kernel_version, boot_config, se
+-        e = bootloader.MenuEntry(hypervisor="/boot/xen.efi",
++        e = bootloader.MenuEntry(hypervisor="/boot/xen.gz",
+                                  hypervisor_args=' '.join(xs_xen_core + xs_xen_shared + xen_serial_params),
+-                                 kernel="/boot/vmlinuz-%s-xen" % short_version,
++                                 kernel=f"/boot/vmlinuz-{xen_kernel_version}",
                                   kernel_args=' '.join(kernel_rootdisk + xs_kernel_core + kernel_console_serial),
-                                  initrd=f"/boot/initrd-{xen_kernel_version}.img", title=MY_PRODUCT_BRAND+" (Serial)",
+-                                 initrd="/boot/initrd-%s-xen.img" % short_version, title=MY_PRODUCT_BRAND+" (Serial)",
++                                 initrd=f"/boot/initrd-{xen_kernel_version}.img", title=MY_PRODUCT_BRAND+" (Serial)",
                                   root=constants.rootfs_label%disk_label_suffix)
 -        e.entry_format = Grub2Format.XEN_BOOT
 +        e.entry_format = Grub2Format.MULTIBOOT2
          boot_config.append("xe-serial", e)
          if boot_serial:
              boot_config.default = "xe-serial"
-@@ -1116,7 +1116,7 @@ def buildBootLoaderMenu(mounts, xen_version, xen_kernel_version, boot_config, se
+@@ -1108,24 +1108,24 @@ def buildBootLoaderMenu(mounts, xen_version, xen_kernel_version, boot_config, se
+     e.entry_format = Grub2Format.LINUX
+     boot_config.append("memtest", e)
+ 
+-    e = bootloader.MenuEntry(hypervisor="/boot/xen-fallback.efi",
++    e = bootloader.MenuEntry(hypervisor="/boot/xen-fallback.gz",
+                              hypervisor_args=' '.join(xs_xen_core + xs_xen_shared),
+                              kernel="/boot/vmlinuz-fallback",
+                              kernel_args=' '.join(kernel_rootdisk + xs_kernel_core + kernel_console_vga),
                               initrd="/boot/initrd-fallback.img",
                               title="%s (Xen %s / Linux %s)" % (MY_PRODUCT_BRAND, xen_version, xen_kernel_version),
                               root=constants.rootfs_label%disk_label_suffix)
@@ -43,8 +82,11 @@ index 317f28b..574647d 100644
 +    e.entry_format = Grub2Format.MULTIBOOT2
      boot_config.append("fallback", e)
      if serial:
-         e = bootloader.MenuEntry(hypervisor="/boot/xen-fallback.gz",
-@@ -1126,7 +1126,7 @@ def buildBootLoaderMenu(mounts, xen_version, xen_kernel_version, boot_config, se
+-        e = bootloader.MenuEntry(hypervisor="/boot/xen-fallback.efi",
++        e = bootloader.MenuEntry(hypervisor="/boot/xen-fallback.gz",
+                                  hypervisor_args=' '.join(xs_xen_core + xs_xen_shared + xen_serial_params),
+                                  kernel="/boot/vmlinuz-fallback",
+                                  kernel_args=' '.join(kernel_rootdisk + xs_kernel_core + kernel_console_serial),
                                   initrd="/boot/initrd-fallback.img",
                                   title="%s (Serial, Xen %s / Linux %s)" % (MY_PRODUCT_BRAND, xen_version, xen_kernel_version),
                                   root=constants.rootfs_label%disk_label_suffix)
