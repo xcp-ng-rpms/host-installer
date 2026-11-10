@@ -1,7 +1,7 @@
 From 7a1fec7adb30a8fcfce4715b4e176c644961dbc7 Mon Sep 17 00:00:00 2001
 From: Yann Dirson <yann.dirson@vates.tech>
 Date: Wed, 23 Jul 2025 09:34:29 +0200
-Subject: [PATCH 7/8] Parametrize kernel-package name, set to kernel-xcpng
+Subject: [PATCH 7/9] Parametrize kernel-package name, set to kernel-xcpng
 
 The kernel RPM in XCP-ng 9 is named kernel-xcpng to distinguish it
 from the Almalinux one.

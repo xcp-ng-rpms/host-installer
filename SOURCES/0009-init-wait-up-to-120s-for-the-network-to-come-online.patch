@@ -1,0 +1,43 @@
+From 7589fd81f8ca1c99cf00da0fefc62125aae4a132 Mon Sep 17 00:00:00 2001
+From: Yann Dirson <yann.dirson@vates.tech>
+Date: Tue, 10 Nov 2026 14:16:14 +0100
+Subject: [PATCH 9/9] init: wait up to 120s for the network to come online
+
+reloadNetwork() waits at most 20s for systemd-networkd-wait-online,
+then goes on (it only logs the timeout).  At init time (when the
+network is configured by boot command-line, fetching the answerfile or
+the answerfile_generator script was done only once, without retry. On
+hardware where link negotiation plus DHCP takes longer, the fetch
+fails with "Unable to fetch script ...": on a phoenixNAP s1.c1.small
+(dual 10G Intel NICs), network-online took about 1 min.
+
+systemd-networkd-wait-online returns as soon as the network is up, so
+a longer limit costs nothing on fast networks.
+
+This change does not modify the reloadNetwork default timeout, so in
+interactive mode the user does not have to wait for 2min if the
+timeout is caused by a config error.  The ability to retry present
+there is already sufficient.
+
+Originally-by: Olivier Lambert <olivier.lambert@vates.tech>
+Signed-off-by: Yann Dirson <yann.dirson@vates.tech>
+---
+ init | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/init b/init
+index a1789f6..71d305d 100755
+--- a/init
++++ b/init
+@@ -77,7 +77,7 @@ def configureNetworking(ui, device, config):
+         netcfg[i].writeSystemdNetworkdConfig(i)
+ 
+     # Reload network to apply the configuration
+-    netutil.reloadNetwork()
++    netutil.reloadNetwork(timeout=120)
+ 
+     if ui:
+         ui.progress.clearModelessDialog()
+-- 
+2.47.3
+

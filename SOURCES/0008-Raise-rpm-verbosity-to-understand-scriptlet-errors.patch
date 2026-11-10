@@ -1,7 +1,7 @@
 From dcfb1be1c036737a6365214396a2a85215a56476 Mon Sep 17 00:00:00 2001
 From: Yann Dirson <yann.dirson@vates.tech>
 Date: Wed, 23 Jul 2025 09:58:53 +0200
-Subject: [PATCH 8/8] Raise rpm verbosity to understand scriptlet errors
+Subject: [PATCH 8/9] Raise rpm verbosity to understand scriptlet errors
 
 This takes up a bit of install time, but is invaluable to understand
 when something goes wrong.

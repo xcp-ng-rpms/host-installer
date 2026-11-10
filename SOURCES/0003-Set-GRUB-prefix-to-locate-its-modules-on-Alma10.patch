@@ -1,7 +1,7 @@
 From ee7b347e392c914a79f87ebf8d89fa542c2887ca Mon Sep 17 00:00:00 2001
 From: Yann Dirson <yann.dirson@vates.tech>
 Date: Fri, 25 Jul 2025 14:42:32 +0200
-Subject: [PATCH 3/8] Set GRUB prefix to locate its modules on Alma10
+Subject: [PATCH 3/9] Set GRUB prefix to locate its modules on Alma10
 
 XS9 does not enable GRUB modules so we have to handle this ourselves.
 

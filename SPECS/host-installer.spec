@@ -23,6 +23,7 @@ Patch0005: 0005-Second-dnf-install-run-for-crypto-policies.patch
 Patch1006: 0006-Force-switch-tty-to-UTF-8-not-ISO-8859-1.patch
 Patch1007: 0007-Parametrize-kernel-package-name-set-to-kernel-xcpng.patch
 Patch1008: 0008-Raise-rpm-verbosity-to-understand-scriptlet-errors.patch
+Patch1009: 0009-init-wait-up-to-120s-for-the-network-to-come-online.patch
 
 # This is where we get 'multipath.conf' from
 BuildRequires: device-mapper-multipath

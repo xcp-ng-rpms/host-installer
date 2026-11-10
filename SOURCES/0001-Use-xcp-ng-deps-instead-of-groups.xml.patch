@@ -1,7 +1,7 @@
 From 9062c6e022fcedb761d2b0b55a6596e141a9abfe Mon Sep 17 00:00:00 2001
 From: Samuel Verschelde <stormi@laposte.net>
 Date: Fri, 6 Dec 2019 12:52:22 +0100
-Subject: [PATCH 1/8] Use xcp-ng-deps instead of groups.xml
+Subject: [PATCH 1/9] Use xcp-ng-deps instead of groups.xml
 
 Signed-off-by: Samuel Verschelde <stormi@laposte.net>
 

@@ -1,7 +1,7 @@
 From ed9124a7bd4314b2102bb6e8dde3a2e0ad1d4f13 Mon Sep 17 00:00:00 2001
 From: Yann Dirson <yann.dirson@vates.tech>
 Date: Wed, 23 Jul 2025 19:36:10 +0200
-Subject: [PATCH 2/8] Use EFI/almalinux
+Subject: [PATCH 2/9] Use EFI/almalinux
 
 We don't want to rebuild the upstream GRUB packages just for a path
 change.

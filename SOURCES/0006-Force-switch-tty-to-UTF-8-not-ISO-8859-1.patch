@@ -1,7 +1,7 @@
 From 40d901457feb8da26335d05bc5fa60b47ab95f5e Mon Sep 17 00:00:00 2001
 From: Yann Dirson <yann.dirson@vates.tech>
 Date: Tue, 22 Jul 2025 13:51:10 +0200
-Subject: [PATCH 6/8] Force-switch tty to UTF-8 not ISO-8859-1
+Subject: [PATCH 6/9] Force-switch tty to UTF-8 not ISO-8859-1
 
 If NEWT was obeying the locale setting, this explicit switch would
 just need to be dropped, but since it outputs unicode chars whatever

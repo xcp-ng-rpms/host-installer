@@ -1,7 +1,7 @@
 From e4b7e68afa206de8d95b9e36fef48ddd5339de7e Mon Sep 17 00:00:00 2001
 From: Yann Dirson <yann.dirson@vates.tech>
 Date: Thu, 24 Jul 2025 16:01:33 +0200
-Subject: [PATCH 4/8] Switch grub config back to multiboot2 to boot on Alma10
+Subject: [PATCH 4/9] Switch grub config back to multiboot2 to boot on Alma10
 
 * this reverts commit 37157e195f7ac4b99812ce2fabf1ae99cd119349
   ("CP-308428: Use the xen_boot loader at install time"), and explicitly

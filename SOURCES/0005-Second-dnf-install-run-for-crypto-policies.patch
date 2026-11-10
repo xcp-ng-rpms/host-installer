@@ -1,7 +1,7 @@
 From 5e763cde50838ed2f0ca9fc3c239c8dd8ffd9bae Mon Sep 17 00:00:00 2001
 From: Yann Dirson <yann.dirson@vates.tech>
 Date: Fri, 22 Aug 2025 15:06:43 +0200
-Subject: [PATCH 5/8] Second "dnf install" run for crypto-policies
+Subject: [PATCH 5/9] Second "dnf install" run for crypto-policies
 
 This is a huge hack.
 ---
